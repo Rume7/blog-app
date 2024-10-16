@@ -1,0 +1,56 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - '**'  # Match all branches
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:latest
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: blogdb
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+
+      - name: Build backend
+        working-directory: backend
+        run: mvn clean package
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm install && npm run build
+
+      - name: Build Docker image
+        run: |
+          docker build -t blog-backend ./backend
+          docker build -t blog-frontend ./frontend
+
+      - name: Push Docker images
+        run: |
+          echo "${{ secrets.DOCKER_USERNAME }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker tag blog-backend your_dockerhub_username/blog-backend:latest
+          docker tag blog-frontend your_dockerhub_username/blog-frontend:latest
+          docker push your_dockerhub_username/blog-backend:latest
+          docker push your_dockerhub_username/blog-frontend:latest
