@@ -45,14 +45,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t blog-backend ./backend
-          docker build -t blog-frontend ./frontend
+          docker build -t blog-backend ./blog-app
 
       - name: Push Docker images
         run: |
           echo "${{ secrets.DOCKER_USERNAME }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           docker tag blog-backend rume7/blog-backend:latest
-          docker tag blog-frontend rume7/blog-frontend:latest
           docker push rume7/blog-backend:latest
-          docker push rume7/blog-frontend:latest
 
