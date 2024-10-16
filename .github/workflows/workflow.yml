@@ -28,7 +28,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          echo "${{ secrets.DOCKER_USERNAME }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          # echo "${{ secrets.DOCKER_USERNAME }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           docker tag blog-app rume7/blog-app:latest
           docker push rume7/blog-app:latest
 
