@@ -24,11 +24,11 @@ jobs:
         run: mvn clean package  # Runs in the root directory where pom.xml is located
 
       - name: Build Docker image
-        run: docker build -t blog-backend .  # Use the root Dockerfile
+        run: docker build -t blog-app .  # Use the root Dockerfile
 
       - name: Push Docker image
         run: |
           echo "${{ secrets.DOCKER_USERNAME }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker tag blog-backend rume7/blog-backend:latest
-          docker push rume7/blog-backend:latest
+          docker tag blog-app rume7/blog-app:latest
+          docker push rume7/blog-app:latest
 
