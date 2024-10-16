@@ -36,12 +36,8 @@ jobs:
           distribution: 'temurin'
 
       - name: Build backend
-        working-directory: backend
+        working-directory: blog-app
         run: mvn clean package
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm install && npm run build
 
       - name: Build Docker image
         run: |
