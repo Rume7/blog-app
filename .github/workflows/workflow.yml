@@ -27,7 +27,7 @@ jobs:
         run: docker build -t blog-app .  # Use the root Dockerfile
 
       - name: Login to Docker Hub
-        run: echo "${{ SECRETS.DOCKER_TOKEN }}" | docker login -u "${{ SECRETS.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Push Docker image
         run: |
