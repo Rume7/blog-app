@@ -30,8 +30,8 @@ jobs:
         run: docker build -t blog-app .
 
       - name: Print secrets
-        run: echo ${{ secrets.DOCKER_USERNAME != '' }} 
-          echo ${{ secrets.DOCKER_TOKEN != '' }}
+        run: echo ${{ secrets.DOCKER_USERNAME }} 
+          echo ${{ secrets.DOCKER_TOKEN }}
 
 
       - name: Login to Docker Hub
