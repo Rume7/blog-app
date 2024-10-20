@@ -64,5 +64,5 @@ jobs:
         run: mvn clean package
 
       - name: Build Docker image
-        run: docker build -t $DOCKER_USERNAME/blog-app:${{ github.sha }} .
+        run: docker build -t blog-app:${{ github.sha }} .
       
