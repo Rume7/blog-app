@@ -1,6 +1,7 @@
 package com.codehacks.blog.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Table
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class Post {
 
     @Id
