@@ -10,7 +10,6 @@ on:
       - main          # Checks PRs targeting the main branch
       - '**'          # Checks PRs targeting any branch
 
-
 jobs:
   analyze:
     name: CodeQL ${{ matrix.language }} Analysis
