@@ -4,12 +4,14 @@ import com.codehacks.blog.model.Post;
 import com.codehacks.blog.repository.BlogRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Service
 @AllArgsConstructor
 public class BlogServiceImpl implements BlogService {
 

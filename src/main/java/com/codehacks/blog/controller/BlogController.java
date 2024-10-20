@@ -1,9 +1,13 @@
 package com.codehacks.blog.controller;
 
+import com.codehacks.blog.model.Post;
 import com.codehacks.blog.service.BlogService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -12,6 +16,39 @@ public class BlogController {
 
     private final BlogService blogService;
 
+    @GetMapping
+    public ResponseEntity<Set<Post>> getAllPosts() {
+        Set<Post> posts = blogService.getAllPosts();
+        return new ResponseEntity<>(posts, HttpStatus.OK);
+    }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Post> getPostById(@PathVariable Long id) {
+        Post post = blogService.getAPost(id);
+        return new ResponseEntity<>(post, HttpStatus.OK);
+    }
 
+    @PostMapping
+    public ResponseEntity<Post> createPost(@RequestBody Post post) {
+        Post createdPost = blogService.createPost(post);
+        return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Post> updatePost(@PathVariable Long id, @RequestBody Post post) {
+        Post updatedPost = blogService.updatePost(post, id);
+        if (updatedPost == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(updatedPost, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
+        boolean isDeleted = blogService.deletePost(id);
+        if (isDeleted) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 }
