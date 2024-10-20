@@ -1,9 +1,9 @@
 package com.codehacks.blog.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @Table
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class Post {
 
     @Id
@@ -25,6 +24,15 @@ public class Post {
     private String content;
 
     @Column
-    private LocalDateTime createdAt;
+    @CreationTimestamp
+    private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column
+    @CreationTimestamp
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    public Post(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
 }
