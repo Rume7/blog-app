@@ -126,7 +126,7 @@ class BlogServiceImplTest {
         Long postId = null;
 
         // When & Then
-        assertThrows(NullPointerException.class, () -> blogService.getAPost(postId));
+        assertThrows(PostNotFoundException.class, () -> blogService.getAPost(postId));
     }
 
     @Test
@@ -139,7 +139,7 @@ class BlogServiceImplTest {
 
         // Then
         RuntimeException exception = assertThrows(PostNotFoundException.class, () -> blogService.getAPost(postId));
-        assertEquals("Blog id " + postId + " does not exist", exception.getMessage());
+        assertEquals("Blog id " + postId + " is invalid", exception.getMessage());
     }
 
     @Test
