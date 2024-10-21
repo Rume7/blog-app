@@ -25,7 +25,10 @@ public class BlogController {
     @GetMapping("/{id}")
     public ResponseEntity<Post> getPostById(@PathVariable Long id) {
         Post post = blogService.getAPost(id);
-        return new ResponseEntity<>(post, HttpStatus.OK);
+        if (post != null) {
+            return new ResponseEntity<>(post, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PostMapping
@@ -45,10 +48,10 @@ public class BlogController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable Long id) {
-        boolean isDeleted = blogService.deletePost(id);
-        if (isDeleted) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (blogService.deletePost(id)) {
+            return ResponseEntity.noContent().build(); // 204 No Content
+        } else {
+            return ResponseEntity.notFound().build(); // 404 Not Found
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

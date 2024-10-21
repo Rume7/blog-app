@@ -1,7 +1,6 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.model.Post;
-import org.springframework.stereotype.Service;
 
 import java.util.Set;
 

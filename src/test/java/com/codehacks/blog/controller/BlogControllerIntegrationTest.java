@@ -130,7 +130,7 @@ class BlogControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(delete("/api/posts/{id}", savedPost.getId()))
-                .andExpect(status().isNoContent());
+            .andExpect(status().isNoContent());
 
         // Verify deletion
         mockMvc.perform(get("/api/posts/{id}", savedPost.getId()))

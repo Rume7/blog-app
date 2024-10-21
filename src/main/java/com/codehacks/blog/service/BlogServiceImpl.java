@@ -32,7 +32,7 @@ public class BlogServiceImpl implements BlogService {
         if (post.isPresent()) {
             return post.get();
         }
-        throw new NullPointerException("Post not found");
+        return null;
     }
 
     @Override

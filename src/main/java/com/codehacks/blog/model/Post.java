@@ -25,11 +25,11 @@ public class Post {
 
     @Column
     @CreationTimestamp
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column
     @CreationTimestamp
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
     public Post(String title, String content) {
         this.title = title;
