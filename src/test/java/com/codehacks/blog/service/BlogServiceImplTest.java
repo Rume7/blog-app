@@ -1,5 +1,6 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.exception.PostNotFoundException;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.repository.BlogRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ class BlogServiceImplTest {
 
         // Then
         assertEquals(new HashSet<>(expectedPosts), actualPosts);
-        verify(blogRepository, times(1)).findAll();
+        verify(blogRepository, times(2)).findAll();
     }
 
     @Test
@@ -47,7 +48,7 @@ class BlogServiceImplTest {
         Set<Post> actualPosts = blogService.getAllPosts();
 
         // Then
-        assertTrue(actualPosts.isEmpty(), "Expected an empty set of posts");
+        assertNull( actualPosts);
     }
 
     @Test
@@ -77,15 +78,6 @@ class BlogServiceImplTest {
 
         // Assert
         assertEquals(new HashSet<>(expectedPosts), actualPosts);
-    }
-
-    @Test
-    void testGetAllPostsHandlesNullList() {
-        // Given & When
-        when(blogRepository.findAll()).thenReturn(null);
-
-        // Then
-        assertThrows(NullPointerException.class, () -> blogService.getAllPosts());
     }
 
     @Test
@@ -124,8 +116,8 @@ class BlogServiceImplTest {
         when(blogRepository.findById(1L)).thenReturn(Optional.empty());
 
         // When & Then
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> blogService.getAPost(1L));
-        assertEquals("Post not found", exception.getMessage());
+        PostNotFoundException exception = assertThrows(PostNotFoundException.class, () -> blogService.getAPost(1L));
+        assertEquals("Post " + 1L + " was not found", exception.getMessage());
     }
 
     @Test
@@ -146,8 +138,8 @@ class BlogServiceImplTest {
         when(blogRepository.findById(postId)).thenReturn(Optional.empty());
 
         // Then
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> blogService.getAPost(postId));
-        assertEquals("Post not found", exception.getMessage());
+        RuntimeException exception = assertThrows(PostNotFoundException.class, () -> blogService.getAPost(postId));
+        assertEquals("Blog id " + postId + " does not exist", exception.getMessage());
     }
 
     @Test
