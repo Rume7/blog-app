@@ -13,11 +13,14 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-@AllArgsConstructor
 public class BlogServiceImpl implements BlogService {
 
-    @Autowired
     private final BlogRepository blogRepository;
+
+    @Autowired
+    public BlogServiceImpl(BlogRepository blogRepository) {
+        this.blogRepository = blogRepository;
+    }
 
     @Override
     public Set<Post> getAllPosts() {
