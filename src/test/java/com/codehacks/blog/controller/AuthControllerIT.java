@@ -66,10 +66,12 @@ class AuthControllerIT {
 
     @Test
     void testRegisterUser() throws Exception {
+        // Given
         User user = new User();
         user.setUsername("testUser");
         user.setPassword("password");
 
+        // When & Then
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
@@ -96,12 +98,15 @@ class AuthControllerIT {
 
     @Test
     void testChangePasswordSuccess() throws Exception {
+        // Given
         User user = new User();
         user.setUsername("testUser");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
         String newPassword = "newpassword";
+
+        // When
         mockMvc.perform(put("/api/auth/change-password")
                         .param("username", user.getUsername())
                         .param("currentPassword", "password")
@@ -110,17 +115,20 @@ class AuthControllerIT {
                         .content("{\"currentPassword\":\"password\", \"newPassword\":\"" + newPassword + "\"}"))
                 .andExpect(status().isOk());
 
+        // Then
         User updatedUser = userRepository.findByUsername("testUser").orElseThrow();
         assert(new BCryptPasswordEncoder().matches(newPassword, updatedUser.getPassword()));
     }
 
     @Test
     void testChangePasswordInvalidCurrent() throws Exception {
+        // Given
         User user = new User();
         user.setUsername("testUser");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
+        // When
         mockMvc.perform(put("/api/auth/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"wrongpassword\", \"newPassword\":\"newpassword\"}"))
@@ -129,17 +137,19 @@ class AuthControllerIT {
 
     @Test
     void testDeleteAccount() throws Exception {
+        // Given
         User user = new User();
         user.setUsername("testUser");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
+        // When
         mockMvc.perform(delete("/api/auth/delete-account")
                         .param("username", "testUser")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
-        // Verify the user is deleted
+        // Then
         assert(userRepository.findByUsername("testUser").isEmpty());
     }
 
@@ -151,7 +161,6 @@ class AuthControllerIT {
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
         String nonExistentUsername = "nonexistentuser";
-
 
         // When & Then
         mockMvc.perform(delete("/api/auth/delete-account")

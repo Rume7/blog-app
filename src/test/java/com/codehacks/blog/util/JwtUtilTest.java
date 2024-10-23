@@ -44,7 +44,7 @@ class JwtUtilTest {
         String validToken = jwtUtil.generateToken("testUser");
 
         // Create an expired token directly
-        String expiredToken = Jwts.builder()
+        Jwts.builder()
                 .setSubject("testUser")
                 .setIssuedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 60)) // 1 hour ago
                 .setExpiration(new Date(System.currentTimeMillis() - 1000)) // expired 1 second ago

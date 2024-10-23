@@ -98,7 +98,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordSuccess() {
+    void testChangePasswordSuccess() {
         // Given
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -120,7 +120,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordUserNotFound() {
+    void testChangePasswordUserNotFound() {
         // Given & When
         when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.empty());
 
@@ -131,7 +131,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordInvalidCurrentPassword() {
+    void testChangePasswordInvalidCurrentPassword() {
         // Given & When
         when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.of(user));
         String wrongCurrentPassword = "wrongEncodedPassword";
@@ -144,7 +144,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testDeleteAccountSuccess() {
+    void testDeleteAccountSuccess() {
         // Given
         when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.of(user));
 
@@ -156,7 +156,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testDeleteAccountUserNotFound() {
+    void testDeleteAccountUserNotFound() {
         // Given & When
         when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.empty());
 
