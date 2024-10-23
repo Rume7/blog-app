@@ -1,8 +1,11 @@
 package com.codehacks.blog.controller;
 
 import com.codehacks.blog.model.Post;
+import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.BlogRepository;
+import com.codehacks.blog.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,13 +27,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class BlogControllerIntegrationTest {
+class BlogControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private BlogRepository blogRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private ObjectMapper objectMapper;
 
@@ -49,11 +56,20 @@ class BlogControllerIntegrationTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         blogRepository.deleteAll();
+        userRepository.deleteAll();
+
+        // Create a user for authentication
+        User user = new User();
+        user.setUsername("testUser");
+        user.setPassword(new BCryptPasswordEncoder().encode("password"));
+        userRepository.save(user);
     }
 
     @BeforeAll
     static void startContainer() {
-        postgresContainer.start();
+        if (!postgresContainer.isRunning()) {
+            postgresContainer.start();
+        }
     }
 
     @AfterAll
@@ -64,13 +80,16 @@ class BlogControllerIntegrationTest {
     @Test
     void testGetAllPosts() throws Exception {
         // Given
+        String token = getToken();
+
         Post post1 = new Post("Title 1", "Content 1");
         Post post2 = new Post("Title 2", "Content 2");
         blogRepository.save(post1);
         blogRepository.save(post2);
 
         // When & Then
-        mockMvc.perform(get("/api/posts"))
+        mockMvc.perform(get("/api/posts")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)));
@@ -79,24 +98,39 @@ class BlogControllerIntegrationTest {
     @Test
     void testGetPostById() throws Exception {
         // Given
+        String token = getToken();
+
         Post post = new Post( "Title", "Content");
         Post savedPost = blogRepository.save(post);
 
         // When & Then
-        mockMvc.perform(get("/api/posts/{id}", savedPost.getId()))
+        mockMvc.perform(get("/api/posts/{id}", savedPost.getId())
+                .header("Authorization", "Bearer " + token))
+//                        .param("id", String.valueOf(post.getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.title").value("Title"))
                 .andExpect(jsonPath("$.content").value("Content"));
     }
 
+    @NotNull
+    private String getToken() throws Exception {
+        return mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"testUser\",\"password\":\"password\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
+
     @Test
     void testCreatePost() throws Exception {
         // Given
+        String token = getToken();
         Post post = new Post("New Title", "New Content");
 
         // When & Then
         mockMvc.perform(post("/api/posts")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(post)))
                 .andExpect(status().isCreated())
@@ -108,12 +142,15 @@ class BlogControllerIntegrationTest {
     @Test
     void testUpdatePost() throws Exception {
         // Given
+        String token = getToken();
+
         Post post = new Post("Old Title", "Old Content");
         Post savedPost = blogRepository.save(post);
         Post updatedPost = new Post("Updated Title", "Updated Content");
 
         // When & Then
         mockMvc.perform(put("/api/posts/{id}", savedPost.getId())
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedPost)))
                 .andExpect(status().isOk())
@@ -125,11 +162,13 @@ class BlogControllerIntegrationTest {
     @Test
     void testDeletePost() throws Exception {
         // Given
+        String token = getToken();
         Post post = new Post("Title", "Content");
         Post savedPost = blogRepository.save(post);
 
         // When & Then
-        mockMvc.perform(delete("/api/posts/{id}", savedPost.getId()))
+        mockMvc.perform(delete("/api/posts/{id}", savedPost.getId())
+                        .header("Authorization", "Bearer " + token))
             .andExpect(status().isNoContent());
 
         // Verify deletion

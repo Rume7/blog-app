@@ -16,13 +16,13 @@ public class BlogController {
 
     private final BlogService blogService;
 
-    @GetMapping
+    @GetMapping(produces = "application/json")
     public ResponseEntity<Set<Post>> getAllPosts() {
         Set<Post> posts = blogService.getAllPosts();
         return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Post> getPostById(@PathVariable Long id) {
         Post post = blogService.getAPost(id);
         if (post != null) {
@@ -31,13 +31,13 @@ public class BlogController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PostMapping
+    @PostMapping(produces = "application/json")
     public ResponseEntity<Post> createPost(@RequestBody Post post) {
         Post createdPost = blogService.createPost(post);
         return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Post> updatePost(@PathVariable Long id, @RequestBody Post post) {
         Post updatedPost = blogService.updatePost(post, id);
         if (updatedPost == null) {
@@ -46,7 +46,7 @@ public class BlogController {
         return new ResponseEntity<>(updatedPost, HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<Void> deletePost(@PathVariable Long id) {
         boolean deletePost = blogService.deletePost(id);
         if (deletePost) {
