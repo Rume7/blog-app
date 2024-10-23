@@ -73,7 +73,7 @@ class BlogControllerIntegrationTest {
         mockMvc.perform(get("/api/posts"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2))); // Expecting 2 posts
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 
     @Test
