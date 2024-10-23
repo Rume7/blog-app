@@ -1,5 +1,6 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.exception.UserAccountNotFound;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
@@ -24,10 +25,10 @@ public class AuthService {
 
     public String authenticate(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserAccountNotFound("Invalid login credentials"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new UserAccountNotFound("Invalid password");
         }
 
         return jwtUtil.generateToken(username);
@@ -40,10 +41,10 @@ public class AuthService {
 
     public void changePassword(String username, String currentPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserAccountNotFound("User not found"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Invalid current password");
+            throw new UserAccountNotFound("Invalid current password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -52,7 +53,7 @@ public class AuthService {
 
     public void deleteAccount(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserAccountNotFound("User account not found"));
 
         userRepository.delete(user);
     }

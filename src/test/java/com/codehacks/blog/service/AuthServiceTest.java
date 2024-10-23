@@ -1,5 +1,6 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.exception.UserAccountNotFound;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
+
     @Mock
     private UserRepository userRepository;
 
@@ -42,21 +44,20 @@ class AuthServiceTest {
     @Test
     void testAuthenticateSuccess() {
         // Given
-        String username = "testUser";
         String password = "password";
         String encodedPassword = new BCryptPasswordEncoder().encode(password);
         user.setPassword(encodedPassword);
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(username)).thenReturn("testToken");
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user.getUsername())).thenReturn("testToken");
 
         // When
-        String result = authService.authenticate(username, password);
+        String result = authService.authenticate(user.getUsername(), password);
 
         // Then
         assertEquals("testToken", result);
-        verify(userRepository, times(1)).findByUsername(username);
-        verify(jwtUtil, times(1)).generateToken(username);
+        verify(userRepository, times(1)).findByUsername(user.getUsername());
+        verify(jwtUtil, times(1)).generateToken(user.getUsername());
     }
 
     @Test
@@ -65,19 +66,19 @@ class AuthServiceTest {
         when(userRepository.findByUsername("invalidUser")).thenReturn(Optional.empty());
 
         // Then
-        Exception exception = assertThrows(RuntimeException.class,
+        RuntimeException exception = assertThrows(UserAccountNotFound.class,
                 () -> authService.authenticate("invalidUser", "password"));
-        assertEquals("User not found", exception.getMessage());
+        assertEquals("Invalid login credentials", exception.getMessage());
     }
 
     @Test
     void testAuthenticateInvalidPassword() {
         // Given & When
-        when(userRepository.findByUsername("testUser")).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // Then
-        Exception exception = assertThrows(RuntimeException.class,
-                () -> authService.authenticate("testUser", "wrongPassword"));
+        RuntimeException exception = assertThrows(UserAccountNotFound.class,
+                () -> authService.authenticate(user.getUsername(), "wrongPassword"));
         assertEquals("Invalid password", exception.getMessage());
     }
 
@@ -98,20 +99,18 @@ class AuthServiceTest {
     }
 
     @Test
-    void testChangePasswordSuccess() {
+    public void testChangePasswordSuccess() {
         // Given
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-        User user = new User();
-        user.setUsername("testUser");
         String currentPassword = "currentPassword";
         String encodedCurrentPassword = passwordEncoder.encode(currentPassword);
         user.setPassword(encodedCurrentPassword);
 
         // When
-        when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(java.util.Optional.of(user));
 
-        authService.changePassword("testUser", currentPassword, "newPassword");
+        authService.changePassword(user.getUsername(), currentPassword, "newPassword");
 
         // Then
         assertNotEquals(encodedCurrentPassword, user.getPassword());
@@ -120,49 +119,49 @@ class AuthServiceTest {
     }
 
     @Test
-    void testChangePasswordUserNotFound() {
+    public void testChangePasswordUserNotFound() {
         // Given & When
-        when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(java.util.Optional.empty());
 
         // Then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> authService.changePassword("testUser", "anyPassword", "newPassword"));
+        RuntimeException exception = assertThrows(UserAccountNotFound.class,
+                () -> authService.changePassword(user.getUsername(), "anyPassword", "newPassword"));
         assertEquals("User not found", exception.getMessage());
     }
 
     @Test
-    void testChangePasswordInvalidCurrentPassword() {
-        // Given & When
-        when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.of(user));
+    public void testChangePasswordInvalidCurrentPassword() {
+        // Given
         String wrongCurrentPassword = "wrongEncodedPassword";
 
+        // When
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(java.util.Optional.of(user));
+
         // Then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> authService.changePassword("testUser", wrongCurrentPassword, "newPassword"));
+        RuntimeException exception = assertThrows(UserAccountNotFound.class,
+                () -> authService.changePassword(user.getUsername(), wrongCurrentPassword, "newPassword"));
 
         assertEquals("Invalid current password", exception.getMessage());
     }
 
     @Test
-    void testDeleteAccountSuccess() {
-        // Given
-        when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.of(user));
-
-        // When
-        authService.deleteAccount("testUser");
+    public void testDeleteAccountSuccess() {
+        // Given & When
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(java.util.Optional.of(user));
+        authService.deleteAccount(user.getUsername());
 
         // Then
         verify(userRepository, times(1)).delete(user);
     }
 
     @Test
-    void testDeleteAccountUserNotFound() {
+    public void testDeleteAccountUserNotFound() {
         // Given & When
-        when(userRepository.findByUsername("testUser")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(java.util.Optional.empty());
 
         // Then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> authService.deleteAccount("testUser"));
-        assertEquals("User not found", exception.getMessage());
+        RuntimeException exception = assertThrows(UserAccountNotFound.class,
+                () -> authService.deleteAccount(user.getUsername()));
+        assertEquals("User account not found", exception.getMessage());
     }
 }
