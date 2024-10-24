@@ -99,7 +99,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordSuccess() {
+    void testChangePasswordSuccess() {
         // Given
         String currentPassword = "password"; // Correct password
         user.setPassword(passwordEncoder.encode(currentPassword)); // Set encoded password
@@ -115,7 +115,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordUserNotFound() {
+    void testChangePasswordUserNotFound() {
         // Given & When
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
@@ -126,7 +126,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testChangePasswordInvalidCurrentPassword() {
+    void testChangePasswordInvalidCurrentPassword() {
         // Given & When
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
@@ -138,7 +138,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testDeleteAccountSuccess() {
+    void testDeleteAccountSuccess() {
         // Given
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
@@ -150,7 +150,7 @@ class AuthServiceTest {
     }
 
     @Test
-    public void testDeleteAccountUserNotFound() {
+    void testDeleteAccountUserNotFound() {
         // Given & When
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
