@@ -48,11 +48,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         public synchronized boolean isRequestAllowed() {
             long currentTime = System.currentTimeMillis();
+
             if (currentTime - startTime > TimeUnit.SECONDS.toMillis(timeWindow)) {
                 // Reset the counter after the time window has expired
                 requestCount = 0;
                 startTime = currentTime;
             }
+
             requestCount++;
             return requestCount <= maxRequests;
         }

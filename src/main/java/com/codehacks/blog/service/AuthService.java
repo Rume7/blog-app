@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.exception.UserAccountNotFound;
+import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
@@ -49,6 +50,13 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public User changeRole(String username, Role role) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserAccountNotFound(username + " not found"));
+        user.setRole(role);
+        return userRepository.save(user);
     }
 
     public void deleteAccount(String username) {

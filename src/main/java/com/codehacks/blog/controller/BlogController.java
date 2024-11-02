@@ -16,7 +16,7 @@ public class BlogController {
 
     private final BlogService blogService;
 
-    @GetMapping(produces = "application/json")
+    @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<Set<Post>> getAllPosts() {
         Set<Post> posts = blogService.getAllPosts();
         return new ResponseEntity<>(posts, HttpStatus.OK);
@@ -31,13 +31,13 @@ public class BlogController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PostMapping(produces = "application/json")
+    @PostMapping(value = "/create", produces = "application/json")
     public ResponseEntity<Post> createPost(@RequestBody Post post) {
         Post createdPost = blogService.createPost(post);
         return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
     }
 
-    @PutMapping(value = "/{id}", produces = "application/json")
+    @PutMapping(value = "/update/{id}", produces = "application/json")
     public ResponseEntity<Post> updatePost(@PathVariable Long id, @RequestBody Post post) {
         Post updatedPost = blogService.updatePost(post, id);
         if (updatedPost == null) {
@@ -46,12 +46,12 @@ public class BlogController {
         return new ResponseEntity<>(updatedPost, HttpStatus.OK);
     }
 
-    @DeleteMapping(value = "/{id}", produces = "application/json")
+    @DeleteMapping(value = "/delete/{id}", produces = "application/json")
     public ResponseEntity<Void> deletePost(@PathVariable Long id) {
         boolean deletePost = blogService.deletePost(id);
         if (deletePost) {
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         }
-        return ResponseEntity.notFound().build(); // 404 Not Found
+        return ResponseEntity.notFound().build();
     }
 }
