@@ -1,5 +1,6 @@
 package com.codehacks.blog.config;
 
+import com.codehacks.blog.model.Role;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,8 +16,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/posts/create", "/api/posts/delete/**", "/api/posts/update/**").hasRole(Role.ADMIN.name())
                         .requestMatchers("/api/posts/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest()
                         .authenticated()
                 );
