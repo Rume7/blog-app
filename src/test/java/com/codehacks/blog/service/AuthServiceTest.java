@@ -101,8 +101,8 @@ class AuthServiceTest {
     @Test
     void testChangePasswordSuccess() {
         // Given
-        String currentPassword = "password"; // Correct password
-        user.setPassword(passwordEncoder.encode(currentPassword)); // Set encoded password
+        String currentPassword = "password";
+        user.setPassword(passwordEncoder.encode(currentPassword));
 
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
