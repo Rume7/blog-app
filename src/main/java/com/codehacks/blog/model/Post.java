@@ -6,9 +6,11 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table
+@Table(name = "BlogPosts")
 @Data
 @NoArgsConstructor
 public class Post {
@@ -31,8 +33,12 @@ public class Post {
     @CreationTimestamp
     private LocalDateTime updatedAt;
 
+    @OneToMany
+    private List<PostComment> allComments;
+
     public Post(String title, String content) {
         this.title = title;
         this.content = content;
+        this.allComments = new ArrayList<>();
     }
 }
