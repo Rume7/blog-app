@@ -21,7 +21,13 @@ import java.time.ZoneId;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class RateLimitingFilterTest {
@@ -71,7 +77,7 @@ class RateLimitingFilterTest {
 
         // Then
         verify(filterChain, times(4)).doFilter(request, response);
-        verify(response, times(4)).setHeader(eq("X-RateLimit-Limit"), eq("5"));
+        verify(response, times(4)).setHeader("X-RateLimit-Limit","5");
         verify(response, times(4)).setHeader(eq("X-RateLimit-Remaining"), anyString());
         verify(response, times(4)).setHeader(eq("X-RateLimit-Reset"), anyString());
     }
@@ -107,7 +113,7 @@ class RateLimitingFilterTest {
 
         // Then
         verify(filterChain, times(MAX_REQUESTS + 1)).doFilter(request, response);
-        verify(response, times(6)).setHeader(eq("X-RateLimit-Limit"), eq("5"));
+        verify(response, times(6)).setHeader("X-RateLimit-Limit","5");
     }
 
     @Test
@@ -145,8 +151,8 @@ class RateLimitingFilterTest {
         simulateRequests(MORE_REQUESTS);
 
         // Then
-        verify(response, times(MORE_REQUESTS)).setHeader(eq("X-RateLimit-Limit"), eq("5"));
-        verify(response, atLeastOnce()).setHeader(eq("X-RateLimit-Remaining"), eq("0"));
+        verify(response, times(MORE_REQUESTS)).setHeader("X-RateLimit-Limit","5");
+        verify(response, atLeastOnce()).setHeader("X-RateLimit-Remaining","0");
         verify(response, times(MORE_REQUESTS)).setHeader(eq("X-RateLimit-Reset"), anyString());
     }
 }
