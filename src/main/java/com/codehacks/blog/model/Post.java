@@ -1,9 +1,11 @@
 package com.codehacks.blog.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,10 +21,11 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
+    @NotBlank(message = "Title cannot be empty")
     private String title;
 
-    @Column
+    @NotBlank(message = "Blog post cannot be empty")
+    @Column(length = 10000)
     private String content;
 
     @Column
@@ -30,15 +33,19 @@ public class Post {
     private LocalDateTime createdAt;
 
     @Column
-    @CreationTimestamp
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @OneToMany
+    @OneToOne(cascade = CascadeType.ALL)
+    private Author author;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PostComment> allComments;
 
     public Post(String title, String content) {
         this.title = title;
         this.content = content;
+        this.author = new Author();
         this.allComments = new ArrayList<>();
     }
 }
