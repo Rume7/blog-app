@@ -1,19 +1,24 @@
 package com.codehacks.blog.dto;
 
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.AllArgsConstructor;
 
+@Data
+@AllArgsConstructor
 public class ApiResponse<T> {
-
-    private T data;
-    private String message;
-    private LocalDateTime timestamp;
     private boolean success;
+    private String message;
+    private T data;
 
-    public ApiResponse(T data, String message, boolean success) {
-        this.data = data;
-        this.message = message;
-        this.success = success;
-        this.timestamp = LocalDateTime.now();
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, "Operation successful", data);
     }
 
+    public static <T> ApiResponse<T> created(T data) {
+        return new ApiResponse<>(true, "Entity created", data);
+    }
+
+    public static <T> ApiResponse<T> error(String message) {
+        return new ApiResponse<>(false, message, null);
+    }
 }

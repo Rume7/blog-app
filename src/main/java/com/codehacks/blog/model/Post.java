@@ -1,5 +1,6 @@
 package com.codehacks.blog.model;
 
+import com.codehacks.blog.util.Constants;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -25,7 +26,7 @@ public class Post {
     private String title;
 
     @NotBlank(message = "Blog post cannot be empty")
-    @Column(length = 10000)
+    @Column(length = Constants.MAX_CONTENT_LENGTH)
     private String content;
 
     @Column

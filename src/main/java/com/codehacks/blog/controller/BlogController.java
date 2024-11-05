@@ -1,10 +1,12 @@
 package com.codehacks.blog.controller;
 
+import com.codehacks.blog.dto.ApiResponse;
 import com.codehacks.blog.dto.PostDTO;
 import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.mapper.PostMapper;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.service.BlogService;
+import com.codehacks.blog.util.Constants;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/blog")
+@RequestMapping(Constants.BLOG_PATH)
 @AllArgsConstructor
 public class BlogController {
 
@@ -40,19 +42,20 @@ public class BlogController {
     }
 
     @PostMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<Post> createPost(@Valid @RequestBody PostDTO postDTO) throws InvalidPostException {
+    public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody PostDTO postDTO) throws InvalidPostException {
         Post post = postMapper.toEntity(postDTO);
         Post createdPost = blogService.createPost(post);
-        return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
+        return ResponseEntity.ok(ApiResponse.created(createdPost));
     }
 
     @PutMapping(value = "/update/{id}", produces = "application/json")
-    public ResponseEntity<Post> updatePost(@PathVariable @Positive Long id,
-                                           @Valid @RequestBody Post post) {
+    public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id,
+                                                        @Valid @RequestBody Post post) {
         Post updatedPost = blogService.updatePost(post, id);
-        return updatedPost != null ?
-                ResponseEntity.ok(updatedPost) :
-                ResponseEntity.notFound().build();
+        if (updatedPost == null) {
+            return ResponseEntity.ok(ApiResponse.error(Constants.POST_NOT_FOUND + id));
+        }
+        return ResponseEntity.ok(ApiResponse.success(updatedPost));
     }
 
     @DeleteMapping(value = "/delete/{id}", produces = "application/json")

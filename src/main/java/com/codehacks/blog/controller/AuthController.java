@@ -2,13 +2,14 @@ package com.codehacks.blog.controller;
 
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.service.AuthService;
+import com.codehacks.blog.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(Constants.AUTH_PATH)
 public class AuthController {
 
     private final AuthService authService;
