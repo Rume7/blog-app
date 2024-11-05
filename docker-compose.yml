@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: 'postgres:15-alpine'
+    environment:
+      - 'POSTGRES_DB=BlogDB'
+      - 'POSTGRES_PASSWORD_FILE=/run/secrets/db_password'
+      - 'POSTGRES_USER=postgres'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d BlogDB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - blog-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    secrets:
+      - db_password
+
+networks:
+  blog-network:
+    driver: bridge
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+
+volumes:
+  postgres_data:
+    driver: local

@@ -40,15 +40,14 @@ public class BlogController {
 
     @PostMapping(value = "/create", produces = "application/json")
     public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post postDTO) throws InvalidPostException {
-        log.info("Received PostDTO: {}", postDTO);
+        log.info("Received Post: {}", postDTO);
         Post createdPost = blogService.createPost(postDTO);
         return ResponseEntity.ok(ApiResponse.created(createdPost));
     }
 
     @PutMapping(value = "/update/{id}", produces = "application/json")
-    public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id,
-                                                        @Valid @RequestBody Post post) {
-        log.info("Received PostDTO: {}", post);
+    public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id, @Valid @RequestBody Post post) {
+        log.info("Received Post: {}", post);
         Post updatedPost = blogService.updatePost(post, id);
         if (updatedPost == null) {
             return ResponseEntity.ok(ApiResponse.error(Constants.POST_NOT_FOUND + id));
