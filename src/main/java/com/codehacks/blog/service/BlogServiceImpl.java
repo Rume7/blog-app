@@ -1,37 +1,34 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.exception.PostNotFoundException;
 import com.codehacks.blog.model.Post;
+import com.codehacks.blog.repository.AuthorRepository;
 import com.codehacks.blog.repository.BlogRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class BlogServiceImpl implements BlogService {
 
     private final BlogRepository blogRepository;
-
-    @Autowired
-    public BlogServiceImpl(BlogRepository blogRepository) {
-        this.blogRepository = blogRepository;
-    }
+    private final AuthorRepository authorRepository;
 
     @Override
     public Set<Post> getAllPosts() {
-        List<Post> postList = blogRepository.findAll();
-        return postList.isEmpty() ? null
-                : new HashSet<>(blogRepository
-                    .findAll());
+        return new HashSet<>(blogRepository.findAll());
     }
 
     @Override
-    public Post getAPost(Long id) {
+    public Post getPostById(Long id) {
         if (id == null || id < 1) {
             throw new PostNotFoundException("Blog id " + id + " is invalid");
         }
@@ -40,20 +37,39 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public Post createPost(Post post) {
+    public List<Post> searchPostsByTitle(String title) {
+        return blogRepository.findByTitleContainingIgnoreCase(title);
+    }
+
+    @Override
+    public List<Post> getPostsByAuthor(String authorName) {
+        return blogRepository.findByAuthorName(authorName);
+    }
+
+    @Override
+    public Post createPost(Post post) throws InvalidPostException {
+        if (post.getTitle() == null ||
+            post.getTitle().trim().length() < 8 ||
+            post.getTitle().length() > 100) {
+            throw new InvalidPostException("Post title must be between 8 and 100 characters");
+        }
+        authorRepository.save(post.getAuthor());
         return blogRepository.save(post);
     }
 
     @Override
     public Post updatePost(Post post, Long blogId) {
         if (blogRepository.existsById(blogId) && post != null) {
-            Post blogPost = blogRepository.findById(blogId).get();
-            blogPost.setTitle(post.getTitle());
-            blogPost.setContent(post.getContent());
-            blogPost.setUpdatedAt(LocalDateTime.now());
-            return blogRepository.save(blogPost);
+            Optional<Post> retrievedPost = blogRepository.findById(blogId);
+            if (retrievedPost.isPresent()) {
+                Post blogPost = retrievedPost.get();
+                blogPost.setTitle(post.getTitle());
+                blogPost.setContent(post.getContent());
+                blogPost.setUpdatedAt(LocalDateTime.now());
+                return blogRepository.save(blogPost);
+            }
         }
-        return null;
+        throw new PostNotFoundException("Post not found with id: " + blogId);
     }
 
     @Override
@@ -62,6 +78,6 @@ public class BlogServiceImpl implements BlogService {
             blogRepository.deleteById(blogId);
             return true;
         }
-        return false;
+        throw new PostNotFoundException("Post not found with id: " + blogId);
     }
 }

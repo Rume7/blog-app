@@ -4,7 +4,12 @@ import com.codehacks.blog.model.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface BlogRepository extends JpaRepository<Post, Long> {
+import java.util.List;
 
+@Repository
+public interface BlogRepository extends JpaRepository<Post, Long>{
+
+    List<Post> findByAuthorName(String authorName);
+
+    List<Post> findByTitleContainingIgnoreCase(String title);
 }

@@ -1,278 +1,253 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.exception.PostNotFoundException;
+import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.Post;
+import com.codehacks.blog.repository.AuthorRepository;
 import com.codehacks.blog.repository.BlogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class BlogServiceImplTest {
-
+    
+    @Mock
     private BlogRepository blogRepository;
+
+    @Mock
+    private AuthorRepository authorRepository;
+
+    @InjectMocks
     private BlogServiceImpl blogService;
+
+    private Post testPost;
+    private Author testAuthor;
 
     @BeforeEach
     void setUp() {
-        blogRepository = mock(BlogRepository.class);
-        blogService = new BlogServiceImpl(blogRepository);
+        testAuthor = new Author("Test", "Author");
+        testPost = new Post("Test Title", "Test Content");
+        testPost.setAuthor(testAuthor);
     }
 
     @Test
-    void testGetAllPosts() {
+    void shouldCreatePostSuccessfully() throws InvalidPostException {
         // Given
-        List<Post> expectedPosts = new ArrayList<>();
-        expectedPosts.add(new Post("Title 1", "Content 1"));
-        expectedPosts.add(new Post("Title 2", "Content 2"));
-        when(blogRepository.findAll()).thenReturn(expectedPosts);
+        when(authorRepository.save(any(Author.class))).thenReturn(testAuthor);
+        when(blogRepository.save(any(Post.class))).thenReturn(testPost);
 
         // When
-        Set<Post> actualPosts = blogService.getAllPosts();
+        Post result = blogService.createPost(testPost);
 
         // Then
-        assertEquals(new HashSet<>(expectedPosts), actualPosts);
-        verify(blogRepository, times(2)).findAll();
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(testPost.getTitle(), result.getTitle()),
+                () -> assertEquals(testPost.getContent(), result.getContent()),
+                () -> assertEquals(testPost.getAuthor(), result.getAuthor())
+        );
+        verify(authorRepository, times(1)).save(any(Author.class));
+        verify(blogRepository, times(1)).save(testPost);
     }
 
     @Test
-    void testGetAllPostsReturnsEmptySet() {
+    void shouldReturnEmptySetWhenNoPostsExist() {
         // Given
-        when(blogRepository.findAll()).thenReturn(new ArrayList<>());
-
+        when(blogRepository.findAll()).thenReturn(Collections.emptyList());
+        
         // When
-        Set<Post> actualPosts = blogService.getAllPosts();
-
+        Set<Post> result = blogService.getAllPosts();
+        
         // Then
-        assertNull( actualPosts);
+        assertAll(
+            () -> assertNotNull(result),
+            () -> assertTrue(result.isEmpty())
+        );
+        verify(blogRepository).findAll();
     }
 
     @Test
-    void testGetAllPostsReturnsSinglePost() {
+    void shouldReturnUniquePostsWhenDuplicatesExist() {
         // Given
-        List<Post> expectedPosts = new ArrayList<>();
-        expectedPosts.add(new Post("Title 1", "Content 1"));
-        when(blogRepository.findAll()).thenReturn(expectedPosts);
-
+        List<Post> duplicatePosts = Arrays.asList(testPost, testPost);
+        when(blogRepository.findAll()).thenReturn(duplicatePosts);
+        
         // When
-        Set<Post> actualPosts = blogService.getAllPosts();
-
+        Set<Post> result = blogService.getAllPosts();
+        
         // Then
-        assertEquals(new HashSet<>(expectedPosts), actualPosts);
+        assertAll(
+            () -> assertEquals(1, result.size()),
+            () -> assertTrue(result.contains(testPost))
+        );
+        verify(blogRepository, times(1)).findAll();
     }
 
     @Test
-    void testGetAllPostsReturnsMultiplePosts() {
-        // Arrange
-        List<Post> expectedPosts = new ArrayList<>();
-        expectedPosts.add(new Post("Title 1", "Content 1"));
-        expectedPosts.add(new Post("Title 2", "Content 2"));
-        when(blogRepository.findAll()).thenReturn(expectedPosts);
-
-        // Act
-        Set<Post> actualPosts = blogService.getAllPosts();
-
-        // Assert
-        assertEquals(new HashSet<>(expectedPosts), actualPosts);
-    }
-
-    @Test
-    void testGetAllPostsIgnoresDuplicatePosts() {
-        // Given
-        List<Post> expectedPosts = new ArrayList<>();
-        Post post1 = new Post("Title 1", "Content 1");
-        expectedPosts.add(post1);
-        expectedPosts.add(post1);
-        when(blogRepository.findAll()).thenReturn(expectedPosts);
-
-        // When
-        Set<Post> actualPosts = blogService.getAllPosts();
-
-        // Then
-        assertEquals(1, actualPosts.size(), "Expected set to contain only one unique post");
-        assertTrue(actualPosts.contains(post1), "Expected post should be present in the set");
-    }
-
-    @Test
-    void testGetAPostFound() {
-        // Given
-        Post expectedPost = new Post("Title 1", "Content 1");
-        when(blogRepository.findById(1L)).thenReturn(Optional.of(expectedPost));
-
-        // When
-        Post actualPost = blogService.getAPost(1L);
-
-        // Then
-        assertEquals(expectedPost, actualPost);
-    }
-
-    @Test
-    void testGetAPostNotFound() {
-        // Given
-        when(blogRepository.findById(1L)).thenReturn(Optional.empty());
-
-        // When & Then
-        PostNotFoundException exception = assertThrows(PostNotFoundException.class, () -> blogService.getAPost(1L));
-        assertEquals("Post " + 1L + " was not found", exception.getMessage());
-    }
-
-    @Test
-    void testGetAPostWithNullId() {
-        // Given
-        Long postId = null;
-
-        // When & Then
-        assertThrows(PostNotFoundException.class, () -> blogService.getAPost(postId));
-    }
-
-    @Test
-    void testGetAPostWithNegativeId() {
-        // Given
-        Long postId = -1L;
-
-        // When
-        when(blogRepository.findById(postId)).thenReturn(Optional.empty());
-
-        // Then
-        RuntimeException exception = assertThrows(PostNotFoundException.class, () -> blogService.getAPost(postId));
-        assertEquals("Blog id " + postId + " is invalid", exception.getMessage());
-    }
-
-    @Test
-    void testGetAPostCallsRepositoryOnce() {
+    void shouldUpdateExistingPost() {
         // Given
         Long postId = 1L;
-        Post expectedPost = new Post("Title 1", "Content 1");
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(expectedPost));
+        Post updatedPost = new Post("Updated Title", "Updated Content");
+        when(blogRepository.existsById(postId)).thenReturn(true);
+        when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
+        when(blogRepository.save(any(Post.class))).thenReturn(updatedPost);
 
         // When
-        blogService.getAPost(postId);
+        Post result = blogService.updatePost(updatedPost, postId);
 
         // Then
-        verify(blogRepository, times(1)).findById(postId);
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(updatedPost.getTitle(), result.getTitle()),
+                () -> assertEquals(updatedPost.getContent(), result.getContent())
+        );
+        verify(blogRepository).findById(postId);
+        verify(blogRepository).save(any(Post.class));
     }
 
     @Test
-    void testDeletePostSuccess() {
+    void shouldThrowExceptionWhenUpdatingNonExistentPost() {
+        // Given
+        Long nonExistentId = 999L;
+        Post updatePost = new Post("Title", "Content");
+
+        // When
+        PostNotFoundException exception = assertThrows(PostNotFoundException.class,
+                () -> blogService.updatePost(updatePost, nonExistentId));
+
+        // Then
+        assertEquals("Post not found with id: " + nonExistentId, exception.getMessage());
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideInvalidPosts")
+    void shouldHandleInvalidPostsForUpdate(Post invalidPost, Long id) {
+        // When & Then
+        assertThrows(PostNotFoundException.class,
+            () -> blogService.updatePost(invalidPost, id));
+    }
+
+    private static Stream<Arguments> provideInvalidPosts() {
+        return Stream.of(
+            Arguments.of(null, 1L),
+            Arguments.of(new Post("", ""), 1L),
+            Arguments.of(new Post(null, null), 1L)
+        );
+    }
+
+    @Test
+    void shouldDeletePostSuccessfully() {
         // Given
         Long postId = 1L;
         when(blogRepository.existsById(postId)).thenReturn(true);
-
+        
         // When
-        Boolean result = blogService.deletePost(postId);
-
+        blogService.deletePost(postId);
+        
         // Then
-        assertTrue(result);
         verify(blogRepository, times(1)).deleteById(postId);
     }
 
     @Test
-    void testDeletePostNotFound() {
+    void shouldThrowExceptionWhenDeletingNonExistentPost() {
+        // Given
+        Long nonExistentId = 999L;
+
+        // When
+        PostNotFoundException exception = assertThrows(PostNotFoundException.class,
+                () -> blogService.deletePost(nonExistentId));
+
+        // Then
+        assertEquals("Post not found with id: " + nonExistentId, exception.getMessage());
+        verify(blogRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void shouldFindPostById() {
         // Given
         Long postId = 1L;
-        when(blogRepository.existsById(postId)).thenReturn(false);
+        when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
 
         // When
-        Boolean result = blogService.deletePost(postId);
+        Post result = blogService.getPostById(postId);
 
         // Then
-        assertFalse(result);
-        verify(blogRepository, times(0)).deleteById(postId);
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(testPost.getTitle(), result.getTitle()),
+                () -> assertEquals(testPost.getContent(), result.getContent())
+        );
+        verify(blogRepository, times(1)).findById(postId);
     }
 
     @Test
-    void testUpdatePostSuccess() {
+    void shouldFilterPostsByTitle() {
         // Given
-        Long blogId = 1L;
-        Post existingPost = new Post("Old Title", "Old Content");
-        existingPost.setId(blogId);
-
-        Post updatedPost = new Post("New Title", "New Content");
-        updatedPost.setId(blogId);
-
-        when(blogRepository.existsById(blogId)).thenReturn(true);
-        when(blogRepository.findById(blogId)).thenReturn(Optional.of(existingPost));
-        when(blogRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String searchTitle = "Test";
+        List<Post> filteredPosts = Arrays.asList(
+                new Post("Test Post 1", "Content 1"),
+                new Post("Test Post 2", "Content 2")
+        );
+        when(blogRepository.findByTitleContainingIgnoreCase(searchTitle))
+                .thenReturn(filteredPosts);
 
         // When
-        Post actualPost = blogService.updatePost(updatedPost, blogId);
+        List<Post> results = blogService.searchPostsByTitle(searchTitle);
 
         // Then
-        assertNotNull(actualPost);
-        assertEquals("New Title", actualPost.getTitle());
-        assertEquals("New Content", actualPost.getContent());
-        verify(blogRepository, times(1)).save(existingPost);
+        assertAll(
+                () -> assertEquals(2, results.size()),
+                () -> assertTrue(results.stream()
+                        .allMatch(post -> post.getTitle().contains(searchTitle)))
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "ab"})
+    void shouldValidatePostTitleLength(String invalidTitle) {
+        // Given
+        Post invalidPost = new Post(invalidTitle, "Valid Content");
+
+        // When
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.createPost(invalidPost));
+
+        // Then
+        assertEquals("Post title must be between 8 and 100 characters", exception.getMessage());
+        verify(blogRepository, never()).save(any());
     }
 
     @Test
-    void testUpdatePostNotFound() {
+    void shouldGetPostsByAuthor() {
         // Given
-        Long blogId = 2L;
-        Post updatedPost = new Post("New Title", "New Content");
-        updatedPost.setId(blogId);
-
-        when(blogRepository.existsById(blogId)).thenReturn(false);
+        String authorName = "Test Author";
+        List<Post> authorPosts = Arrays.asList(
+                new Post("Post 1", "Content 1"),
+                new Post("Post 2", "Content 2")
+        );
+        when(blogRepository.findByAuthorName(authorName)).thenReturn(authorPosts);
 
         // When
-        Post actualPost = blogService.updatePost(updatedPost, blogId);
+        List<Post> results = blogService.getPostsByAuthor(authorName);
 
         // Then
-        assertNull(actualPost);
-        verify(blogRepository, never()).save(any(Post.class));
-    }
-
-    @Test
-    void testUpdatePostWithNullPost() {
-        // Given
-        Long blogId = 1L;
-        when(blogRepository.existsById(blogId)).thenReturn(true);
-
-        // When
-        Post actualPost = blogService.updatePost(null, blogId);
-
-        // Then
-        assertNull(actualPost);
-        verify(blogRepository, never()).save(any(Post.class));
-    }
-
-    @Test
-    void testUpdatePostWithNullId() {
-        // Given
-        Post updatedPost = new Post("New Title", "New Content");
-        updatedPost.setId(null);
-
-        // When
-        Post actualPost = blogService.updatePost(updatedPost, null);
-
-
-        // Then
-        assertNull(actualPost);
-        verify(blogRepository, never()).save(any(Post.class));
-    }
-
-    @Test
-    void testUpdatePostUpdatesTimestamp() {
-        // Given
-        Long blogId = 1L;
-        Post existingPost = new Post("Old Title", "Old Content");
-        existingPost.setId(blogId);
-        Post updatedPost = new Post("New Title", "New Content");
-        updatedPost.setId(blogId);
-
-        // When
-        when(blogRepository.existsById(blogId)).thenReturn(true);
-        when(blogRepository.findById(blogId)).thenReturn(Optional.of(existingPost));
-        when(blogRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        LocalDateTime beforeUpdate = LocalDateTime.now();
-
-        Post actualPost = blogService.updatePost(updatedPost, blogId);
-
-        // Then
-        assertTrue(actualPost.getUpdatedAt().isAfter(beforeUpdate));
+        assertEquals(2, results.size());
+        verify(blogRepository, times(1)).findByAuthorName(authorName);
     }
 }

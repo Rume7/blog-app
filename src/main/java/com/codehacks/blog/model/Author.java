@@ -27,6 +27,11 @@ public class Author {
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
     private List<Post> posts = new ArrayList<>();
 
+    public Author(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
     public String getFullName() {
         return String.join(" ", this.firstName, lastName);
     }

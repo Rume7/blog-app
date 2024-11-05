@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class Post {
     private String content;
 
     @Column
-    @CreationTimestamp
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @Column
@@ -43,9 +43,17 @@ public class Post {
     private List<PostComment> allComments;
 
     public Post(String title, String content) {
-        this.title = title;
-        this.content = content;
+        this.title = title != null ? title.trim() : null;
+        this.content = content != null ? content.trim() : null;
         this.author = new Author();
         this.allComments = new ArrayList<>();
+    }
+
+    public void setTitle(String title) {
+        this.title = title != null ? title.trim() : null;
+    }
+
+    public void setContent(String content) {
+        this.content = content != null ? content.trim() : null;
     }
 }
