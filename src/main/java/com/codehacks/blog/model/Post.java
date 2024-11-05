@@ -5,8 +5,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ public class Post {
     private String content;
 
     @Column
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     @Column
@@ -48,6 +48,12 @@ public class Post {
         this.content = content != null ? content.trim() : null;
         this.author = new Author();
         this.allComments = new ArrayList<>();
+    }
+
+    public Post(String title, String content, Author author) {
+        this(title, content);
+        this.author.setFirstName(author.getFirstName());
+        this.author.setLastName(author.getLastName());
     }
 
     public void setTitle(String title) {

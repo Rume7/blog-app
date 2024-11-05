@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class PostMapper {
 
     public Post toEntity(PostDTO dto) {
-        return new Post(dto.getTitle(), dto.getContent());
+        return new Post(dto.getTitle(), dto.getContent(), dto.getAuthor());
     }
 
     public PostDTO toDto(Post post) {
