@@ -42,8 +42,8 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public List<Post> getPostsByAuthor(String authorName) {
-        return blogRepository.findByAuthorName(authorName);
+    public List<Post> getPostsByAuthor(Author authorName) {
+        return blogRepository.findByAuthor(authorName);
     }
 
     @Override

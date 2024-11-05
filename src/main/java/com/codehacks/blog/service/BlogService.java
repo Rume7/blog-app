@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.exception.InvalidPostException;
+import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.Post;
 
 import java.util.List;
@@ -14,7 +15,7 @@ public interface BlogService {
 
     List<Post> searchPostsByTitle(String title);
 
-    List<Post> getPostsByAuthor(String authorName);
+    List<Post> getPostsByAuthor(Author authorName);
 
     Post createPost(final Post post) throws InvalidPostException;
 

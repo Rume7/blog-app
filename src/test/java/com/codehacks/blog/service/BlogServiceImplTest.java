@@ -236,18 +236,18 @@ class BlogServiceImplTest {
     @Test
     void shouldGetPostsByAuthor() {
         // Given
-        String authorName = "Test Author";
+        Author authorName = new Author("Test", "Author");
         List<Post> authorPosts = Arrays.asList(
                 new Post("Post 1", "Content 1"),
                 new Post("Post 2", "Content 2")
         );
-        when(blogRepository.findByAuthorName(authorName)).thenReturn(authorPosts);
+        when(blogRepository.findByAuthor(authorName)).thenReturn(authorPosts);
 
         // When
         List<Post> results = blogService.getPostsByAuthor(authorName);
 
         // Then
         assertEquals(2, results.size());
-        verify(blogRepository, times(1)).findByAuthorName(authorName);
+        verify(blogRepository, times(1)).findByAuthor(authorName);
     }
 }
