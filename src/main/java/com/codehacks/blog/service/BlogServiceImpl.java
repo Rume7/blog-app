@@ -2,6 +2,7 @@ package com.codehacks.blog.service;
 
 import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.exception.PostNotFoundException;
+import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.repository.AuthorRepository;
 import com.codehacks.blog.repository.BlogRepository;
@@ -13,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -53,7 +53,8 @@ public class BlogServiceImpl implements BlogService {
             post.getTitle().length() > 100) {
             throw new InvalidPostException("Post title must be between 8 and 100 characters");
         }
-        authorRepository.save(post.getAuthor());
+        Author savedAuthor = authorRepository.save(post.getAuthor());
+        post.setAuthor(savedAuthor);
         return blogRepository.save(post);
     }
 

@@ -35,7 +35,7 @@ public class AuthService {
         return jwtUtil.generateToken(username);
     }
 
-    public User register(User user) {
+    public User registerUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -52,14 +52,14 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public User changeRole(String username, Role role) {
+    public User changeUserRole(String username, Role role) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserAccountNotFound(username + " not found"));
         user.setRole(role);
         return userRepository.save(user);
     }
 
-    public void deleteAccount(String username) {
+    public void deleteUserAccount(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserAccountNotFound("User account not found"));
 

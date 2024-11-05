@@ -40,7 +40,6 @@ class AuthServiceTest {
         user.setId(1L);
         user.setUsername("testUser");
 
-        // Encode password correctly
         String password = "password";
         user.setPassword(passwordEncoder.encode(password));
     }
@@ -90,7 +89,7 @@ class AuthServiceTest {
         user.setPassword("password"); // Set plain password for registration
 
         // When
-        User result = authService.register(user);
+        User result = authService.registerUser(user);
 
         // Then
         assertNotNull(result);
@@ -143,7 +142,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // When
-        authService.deleteAccount(user.getUsername());
+        authService.deleteUserAccount(user.getUsername());
 
         // Then
         verify(userRepository, times(1)).delete(user);
@@ -156,7 +155,7 @@ class AuthServiceTest {
 
         // Then
         UserAccountNotFound exception = assertThrows(UserAccountNotFound.class,
-                () -> authService.deleteAccount(user.getUsername()));
+                () -> authService.deleteUserAccount(user.getUsername()));
         assertEquals("User account not found", exception.getMessage());
     }
 }

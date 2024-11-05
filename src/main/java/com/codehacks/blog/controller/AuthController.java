@@ -1,5 +1,6 @@
 package com.codehacks.blog.controller;
 
+import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.util.Constants;
@@ -21,7 +22,7 @@ public class AuthController {
 
     @PostMapping(value = "/register", produces = "application/json")
     public ResponseEntity<User> register(@RequestBody User user) {
-        User savedUser = authService.register(user);
+        User savedUser = authService.registerUser(user);
         return ResponseEntity.ok(savedUser);
     }
 
@@ -40,10 +41,17 @@ public class AuthController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
+    @PutMapping(value = "/change-role", produces = "application/json")
+    public ResponseEntity<String> changeUserRole(@RequestParam String username,
+                                                 @RequestParam Role userRole) {
+        User user = authService.changeUserRole(username, userRole);
+        return ResponseEntity.ok("Role changed successfully");
+    }
+
     @DeleteMapping(value = "/delete-account", produces = "application/json")
     public ResponseEntity<String> deleteAccount(@RequestParam String username) {
         try {
-            authService.deleteAccount(username);
+            authService.deleteUserAccount(username);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");

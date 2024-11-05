@@ -12,6 +12,6 @@ public class PostMapper {
     }
 
     public PostDTO toDto(Post post) {
-        return new PostDTO(post.getTitle(), post.getContent());
+        return new PostDTO(post.getTitle(), post.getContent(), post.getAuthor());
     }
 }
