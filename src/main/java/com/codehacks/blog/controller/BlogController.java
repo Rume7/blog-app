@@ -39,9 +39,9 @@ public class BlogController {
     }
 
     @PostMapping(value = "/create", produces = "application/json")
-    public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post postDTO) throws InvalidPostException {
-        log.info("Received Post: {}", postDTO);
-        Post createdPost = blogService.createPost(postDTO);
+    public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post post) throws InvalidPostException {
+        log.info("Received Post: {}", post);
+        Post createdPost = blogService.createPost(post);
         return ResponseEntity.ok(ApiResponse.created(createdPost));
     }
 
