@@ -25,5 +25,5 @@ public class User {
     private String password;
 
     @Column
-    private Role role;
+    private Role role = Role.USER;
 }
