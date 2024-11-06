@@ -2,8 +2,8 @@ services:
   postgres:
     image: 'postgres:17.0-alpine'
     environment:
-      - 'POSTGRES_DB=BlogDB'
-      - 'POSTGRES_PASSWORD_FILE=/run/secrets/db_password'
+      - 'POSTGRES_DB=BlogTestDB'
+      - 'POSTGRES_PASSWORD=/run/secrets/db_password'
       - 'POSTGRES_USER=postgres'
     ports:
       - '5432:5432'
@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d BlogDB"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d BlogTestDB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,6 +24,14 @@ services:
           memory: 1G
     secrets:
       - db_password
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: blog-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - blog-network
 
 networks:
   blog-network:
