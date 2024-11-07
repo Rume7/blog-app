@@ -1,51 +1,69 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.exception.UserAccountNotFound;
+import com.codehacks.blog.dto.UserDTO;
+import com.codehacks.blog.exception.UserAccountException;
+import com.codehacks.blog.mapper.UserMapper;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
+@AllArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
-
+    private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
-
-    @Autowired
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil) {
-        this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
-    }
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public String authenticate(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserAccountNotFound("Invalid login credentials"));
+                .orElseThrow(() -> new UserAccountException("Invalid login credentials"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new UserAccountNotFound("Invalid password");
+            throw new UserAccountException("Invalid password");
         }
 
         return jwtUtil.generateToken(username);
     }
 
-    public User registerUser(User user) {
+    public UserDTO registerUser(User user) {
+        if (checkIfUsernameExists(user)) {
+            throw new UserAccountException(user.getUsername() + " already exist");
+        }
+        if (checkIfEmailExists(user)) {
+            throw new UserAccountException(user.getEmail() + " already exist");
+        }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        return userMapper.apply(savedUser);
+    }
+
+    private boolean checkIfUsernameExists(User user) {
+        Optional<User> userFound = userRepository.findByUsername(user.getUsername());
+        return userFound.isPresent();
+    }
+
+    private boolean checkIfEmailExists(User user) {
+        Optional<User> userFound = userRepository.findByEmail(user.getEmail());
+        return userFound.isPresent();
     }
 
     public void changePassword(String username, String currentPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserAccountNotFound("User not found"));
+                .orElseThrow(() -> new UserAccountException("User not found"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new UserAccountNotFound("Invalid current password");
+            throw new UserAccountException("Invalid current password");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -54,15 +72,28 @@ public class AuthService {
 
     public User changeUserRole(String username, Role role) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserAccountNotFound(username + " not found"));
+                .orElseThrow(() -> new UserAccountException(username + " not found"));
         user.setRole(role);
         return userRepository.save(user);
     }
 
     public void deleteUserAccount(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserAccountNotFound("User account not found"));
+                .orElseThrow(() -> new UserAccountException("User account not found"));
 
         userRepository.delete(user);
+    }
+
+    public void logAdminAccess(String username, String clientIP) {
+
+    }
+
+    public void reportUnauthorizedAdminAccess(String username, String clientIP) {
+
+    }
+
+    public boolean canUserDeleteAccount(String username, UserDetails userDetails) {
+        return userDetails.getUsername().equals(username) ||
+                userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
 }

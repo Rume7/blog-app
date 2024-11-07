@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.exception.UserAccountNotFound;
+import com.codehacks.blog.dto.UserDTO;
+import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
@@ -39,6 +40,7 @@ class AuthServiceTest {
         user = new User();
         user.setId(1L);
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
 
         String password = "password";
         user.setPassword(passwordEncoder.encode(password));
@@ -67,7 +69,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername("nonExistentUser")).thenReturn(Optional.empty());
 
         // Then
-        assertThrows(UserAccountNotFound.class,
+        assertThrows(UserAccountException.class,
                 () -> authService.authenticate("nonExistentUser", "password"));
     }
 
@@ -77,7 +79,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // Then
-        UserAccountNotFound exception = assertThrows(UserAccountNotFound.class,
+        UserAccountException exception = assertThrows(UserAccountException.class,
                 () -> authService.authenticate(user.getUsername(), "wrongPassword")); // Wrong password
         assertEquals("Invalid password", exception.getMessage());
     }
@@ -89,11 +91,11 @@ class AuthServiceTest {
         user.setPassword("password"); // Set plain password for registration
 
         // When
-        User result = authService.registerUser(user);
+        UserDTO result = authService.registerUser(user);
 
         // Then
         assertNotNull(result);
-        assertNotEquals("password", result.getPassword());
+        assertNotEquals("user@example.com", result.getEmail());
         verify(userRepository, times(1)).save(any(User.class));
     }
 
@@ -119,7 +121,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         // Then
-        UserAccountNotFound exception = assertThrows(UserAccountNotFound.class,
+        UserAccountException exception = assertThrows(UserAccountException.class,
                 () -> authService.changePassword(user.getUsername(), "anyPassword", "newPassword"));
         assertEquals("User not found", exception.getMessage());
     }
@@ -130,7 +132,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // Then
-        UserAccountNotFound exception = assertThrows(UserAccountNotFound.class,
+        UserAccountException exception = assertThrows(UserAccountException.class,
                 () -> authService.changePassword(user.getUsername(), "wrongPassword", "newPassword"));
 
         assertEquals("Invalid current password", exception.getMessage());
@@ -154,7 +156,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         // Then
-        UserAccountNotFound exception = assertThrows(UserAccountNotFound.class,
+        UserAccountException exception = assertThrows(UserAccountException.class,
                 () -> authService.deleteUserAccount(user.getUsername()));
         assertEquals("User account not found", exception.getMessage());
     }

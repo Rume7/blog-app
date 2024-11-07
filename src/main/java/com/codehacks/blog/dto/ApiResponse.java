@@ -3,12 +3,22 @@ package com.codehacks.blog.dto;
 import lombok.Data;
 import lombok.AllArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 public class ApiResponse<T> {
     private boolean success;
     private String message;
     private T data;
+    private LocalDateTime timestamp;
+
+    public ApiResponse(boolean success, String message, T data) {
+        this.data = data;
+        this.message = message;
+        this.success = success;
+        this.timestamp = LocalDateTime.now();
+    }
 
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(true, "Operation successful", data);
