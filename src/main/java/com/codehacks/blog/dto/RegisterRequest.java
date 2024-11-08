@@ -26,8 +26,8 @@ public record RegisterRequest(
         user.setUsername(username());
         user.setPassword(password());
         user.setEmail(email());
-        user.setRole(Role.USER); // Setting default role for new registrations
-//        user.setEnabled(true);   // Setting account as enabled by default
+        user.setRole(Role.USER);
+        user.setEnabled(true);
         return user;
     }
 }

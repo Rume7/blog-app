@@ -9,7 +9,6 @@ import com.codehacks.blog.model.User;
 import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
-import com.codehacks.blog.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -98,8 +97,7 @@ public class AuthController {
     @PostMapping("/admin-only")
     @PreAuthorize("isAuthenticated()")
     @RateLimit(maxRequests = 3, timeWindowMinutes = 5)
-    public ResponseEntity<String> adminEndpoint(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                HttpServletRequest request) {
+    public ResponseEntity<String> adminEndpoint(@AuthenticationPrincipal CustomUserDetails userDetails, HttpServletRequest request) {
         String clientIP = request.getRemoteAddr();
         authService.logAdminAccess(userDetails.getUsername(), clientIP);
 
