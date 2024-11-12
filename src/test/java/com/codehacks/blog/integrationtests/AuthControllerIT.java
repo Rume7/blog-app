@@ -1,5 +1,6 @@
-package com.codehacks.blog.controller;
+package com.codehacks.blog.integrationtests;
 
+import com.codehacks.blog.controller.AuthController;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;

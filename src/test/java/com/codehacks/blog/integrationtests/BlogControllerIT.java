@@ -1,4 +1,4 @@
-package com.codehacks.blog.controller;
+package com.codehacks.blog.integrationtests;
 
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.model.User;
