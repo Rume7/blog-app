@@ -93,7 +93,8 @@ public class AuthService {
     }
 
     public boolean canUserDeleteAccount(String username, UserDetails userDetails) {
-        return userDetails.getUsername().equals(username) ||
-                userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        return userDetails.getUsername().equals(username)
+                || userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Role.ADMIN.name()))
+                || userDetails.getAuthorities().contains(new SimpleGrantedAuthority(Role.SUBSCRIBER.name()));
     }
 }
