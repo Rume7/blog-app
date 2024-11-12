@@ -40,7 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/register").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/change-password", "/api/v1/auth/logout")
                             .hasAnyRole(Role.USER.name(), Role.SUBSCRIBER.name(), Role.ADMIN.name())
-                        .requestMatchers("/api/v1/auth/delete-account", "/api/v1/auth/change-role").hasRole(Role.ADMIN.name())
+                        .requestMatchers("/api/v1/auth/delete-account", "/api/v1/auth/change-role").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
                         .anyRequest().authenticated());
 
         return http.build();
