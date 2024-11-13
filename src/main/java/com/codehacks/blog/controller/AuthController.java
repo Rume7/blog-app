@@ -3,6 +3,7 @@ package com.codehacks.blog.controller;
 import com.codehacks.blog.config.RateLimit;
 import com.codehacks.blog.dto.*;
 import com.codehacks.blog.exception.TokenExpirationException;
+import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
@@ -73,8 +74,12 @@ public class AuthController {
     @PutMapping(value = "/change-role", produces = "application/json")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> changeUserRole(@Valid @RequestBody RoleChangeRequest request) {
-        authService.changeUserRole(request.username(), request.userRole());
-        return ResponseEntity.ok("Role changed successfully");
+        try {
+            authService.changeUserRole(request.username(), request.userRole());
+            return ResponseEntity.ok("Role changed successfully");
+        } catch (UserAccountException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @DeleteMapping(value = "/delete-account", produces = "application/json")

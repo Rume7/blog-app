@@ -2,6 +2,7 @@ package com.codehacks.blog.controller;
 
 import com.codehacks.blog.config.SecurityConfig;
 import com.codehacks.blog.dto.RegisterRequest;
+import com.codehacks.blog.dto.RoleChangeRequest;
 import com.codehacks.blog.dto.UserDTO;
 import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.CustomUserDetails;
@@ -12,6 +13,7 @@ import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
 import com.codehacks.blog.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -26,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -40,9 +43,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
@@ -99,6 +102,82 @@ class AuthControllerTest {
                 Arguments.of(Role.ADMIN, HttpStatus.OK)
         );
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeUserRole_AsAdmin_Success() throws Exception {
+        RoleChangeRequest request = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
+
+        User updatedUser = new User();
+        updatedUser.setUsername("testUser");
+        updatedUser.setRole(Role.SUBSCRIBER);
+
+        when(authService.changeUserRole(request.username(), request.userRole())).thenReturn(updatedUser);
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Role changed successfully"));
+
+        verify(authService).changeUserRole(request.username(), request.userRole());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void changeUserRole_AsUser_Forbidden() throws Exception {
+        RoleChangeRequest request = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verify(authService, never()).changeUserRole(anyString(), any(Role.class));
+    }
+
+    @Test
+    void changeUserRole_Unauthenticated_Unauthorized() throws Exception {
+        RoleChangeRequest request = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        verify(authService, never()).changeUserRole(anyString(), any(Role.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeUserRole_InvalidRequest_BadRequest() throws Exception {
+        RoleChangeRequest request = new RoleChangeRequest("", null); // Invalid request
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).changeUserRole(anyString(), any(Role.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeUserRole_UserNotFound_NotFound() throws Exception {
+        RoleChangeRequest request = new RoleChangeRequest("nonexistentUser", Role.SUBSCRIBER);
+
+        when(authService.changeUserRole(request.username(), request.userRole()))
+                .thenThrow(new UserAccountException("nonexistentUser not found"));
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("nonexistentUser not found"));
+
+        verify(authService).changeUserRole(request.username(), request.userRole());
+    }
+
 
     @ParameterizedTest
     @MethodSource("provideRolesAndExpectedStatusForDeleteUserNotFound")
