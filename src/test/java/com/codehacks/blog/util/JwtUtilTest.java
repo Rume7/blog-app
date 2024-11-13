@@ -19,13 +19,13 @@ class JwtUtilTest {
 
     private JwtUtil jwtUtil;
     private static final String TEST_USERNAME = "testUser";
-    private static final String SECRET_KEY = "thisIsATestSecretKeyThatIsLongEnoughForHS256";
+    private static final String TEST_SECRET_KEY = "thisIsATestSecretKeyThatIsLongEnoughForHS256";
 
 
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
-        ReflectionTestUtils.setField(jwtUtil, "secretKey", SECRET_KEY);
+        ReflectionTestUtils.setField(jwtUtil, "SECRET_KEY", TEST_SECRET_KEY);
     }
 
     @Test
