@@ -36,7 +36,7 @@ class JwtUtilTest {
         // Then
         assertNotNull(token);
         assertFalse(token.isEmpty());
-        assertTrue(token.split("\\.").length == 3); // Verify JWT structure
+        assertEquals(token.split("\\.").length, 3); // Verify JWT structure
     }
 
     @Test

@@ -84,10 +84,20 @@ public class AuthService {
         userRepository.delete(user);
     }
 
+    /**
+     * TODO: method to log admin logins to the application
+     * @param username
+     * @param clientIP
+     */
     public void logAdminAccess(String username, String clientIP) {
 
     }
 
+    /**
+     * TODO: Method to log unauthorized admin access to the application
+     * @param username
+     * @param clientIP
+     */
     public void reportUnauthorizedAdminAccess(String username, String clientIP) {
 
     }
