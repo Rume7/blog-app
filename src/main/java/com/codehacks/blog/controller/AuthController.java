@@ -6,7 +6,6 @@ import com.codehacks.blog.exception.TokenExpirationException;
 import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Role;
-import com.codehacks.blog.model.User;
 import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
