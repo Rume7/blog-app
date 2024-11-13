@@ -73,7 +73,7 @@ public class AuthController {
     @PutMapping(value = "/change-role", produces = "application/json")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> changeUserRole(@Valid @RequestBody RoleChangeRequest request) {
-        User user = authService.changeUserRole(request.username(), request.userRole());
+        authService.changeUserRole(request.username(), request.userRole());
         return ResponseEntity.ok("Role changed successfully");
     }
 

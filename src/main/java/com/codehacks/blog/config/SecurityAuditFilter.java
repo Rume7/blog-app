@@ -27,8 +27,7 @@ public class SecurityAuditFilter extends OncePerRequestFilter {
     );
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String requestPath = request.getRequestURI();
 
@@ -40,7 +39,7 @@ public class SecurityAuditFilter extends OncePerRequestFilter {
     }
 
     private void logSecurityEvent(HttpServletRequest request) {
-        SecurityEvent event = SecurityEvent.builder()
+        SecurityEvent.builder()
                 .timestamp(LocalDateTime.now())
                 .path(request.getRequestURI())
                 .method(request.getMethod())
