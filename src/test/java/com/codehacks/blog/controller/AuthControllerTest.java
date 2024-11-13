@@ -244,7 +244,7 @@ class AuthControllerTest {
         }
     }
 
-    static class RoleAndUsernameArgumentsProvider implements ArgumentsProvider {
+    private static class RoleAndUsernameArgumentsProvider implements ArgumentsProvider {
 
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {

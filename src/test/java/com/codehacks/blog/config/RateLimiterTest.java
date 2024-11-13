@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import static org.mockito.Mockito.*;
 import java.time.Duration;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 class RateLimiterTest {
     private RateLimiter rateLimiter;
@@ -103,10 +106,16 @@ class RateLimiterTest {
                 () -> rateLimiter.enforceRateLimit(joinPoint, rateLimit));
 
         // Wait for bucket to refill
-        Thread.sleep(Duration.ofSeconds(61).toMillis());
-
-        // Then: Third request should succeed after refill
-        rateLimiter.enforceRateLimit(joinPoint, rateLimit);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.schedule(() -> {
+            try {
+                // Then: Third request should succeed after refill
+                rateLimiter.enforceRateLimit(joinPoint, rateLimit);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }, 61, TimeUnit.SECONDS);
+        scheduler.shutdown();
     }
 
     @Test

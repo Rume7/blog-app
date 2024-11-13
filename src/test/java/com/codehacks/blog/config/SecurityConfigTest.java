@@ -5,6 +5,7 @@ import com.codehacks.blog.dto.RoleChangeRequest;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
+import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,17 +89,17 @@ class SecurityConfigTest {
     @Test
     @WithMockUser(username = "testUser", roles = "USER")
     void givenUserWithRoleUser_whenAccessRestrictedEndpoint_thenForbidden() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/delete-account")
+        mockMvc.perform(get(Constants.AUTH_PATH + "/delete-account")
                         .with(csrf()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
-    void givenUserWithRoleAdmin_whenAccessAdminEndpoint_thenOk() throws Exception {
+    void givenUserWithAdminRole_whenAccessAdminEndpoint_thenOk() throws Exception {
         RoleChangeRequest roleChangeRequest = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
 
-        mockMvc.perform(put("/api/v1/auth/change-role")
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(roleChangeRequest)))
@@ -107,14 +108,14 @@ class SecurityConfigTest {
 
     @Test
     void givenNoAuth_whenAccessRestrictedEndpoint_thenUnauthorized() throws Exception {
-        mockMvc.perform(put("/api/v1/auth/change-password")
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
                         .with(csrf()))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void givenValidCorsConfig_whenMakingCorsRequest_thenPass() throws Exception {
-        mockMvc.perform(options("/api/v1/auth/login")
+        mockMvc.perform(options(Constants.AUTH_PATH + "/login")
                         .header("Origin", "https://trusted-domain.com")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isOk())
@@ -123,7 +124,7 @@ class SecurityConfigTest {
 
     @Test
     void givenInvalidCorsConfig_whenMakingCorsRequest_thenFail() throws Exception {
-        mockMvc.perform(options("/api/v1/auth/login")
+        mockMvc.perform(options(Constants.AUTH_PATH + "/login")
                         .header("Origin", "https://untrusted-domain.com")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden());
@@ -131,10 +132,10 @@ class SecurityConfigTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
-    void testSecurityConfiguration_WithRoleAdmin() throws Exception {
+    void testSecurityConfigurationWithAdminRole() throws Exception {
         RoleChangeRequest roleChangeRequest = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
 
-        mockMvc.perform(put("/api/v1/auth/change-role")
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(roleChangeRequest)))
@@ -143,14 +144,14 @@ class SecurityConfigTest {
 
     @Test
     @WithMockUser(username = "testUser", roles = "USER")
-    void testSecurityConfiguration_WithRoleUser() throws Exception {
+    void testSecurityConfigurationWithUserRole() throws Exception {
         PasswordChangeRequest passwordChangeRequest = PasswordChangeRequest.builder()
                 .username("testUser")
                 .currentPassword("password")
                 .newPassword("newPass@123X")
                 .build();
 
-        mockMvc.perform(put("/api/v1/auth/change-password")
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(passwordChangeRequest)))
                 .andExpect(status().isOk());

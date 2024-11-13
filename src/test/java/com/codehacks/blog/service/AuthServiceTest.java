@@ -10,6 +10,7 @@ import com.codehacks.blog.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -87,9 +88,8 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // Then
-        UserAccountException exception = assertThrows(UserAccountException.class,
-                () -> authService.authenticate(user.getUsername(), "wrongPassword"));
-        assertEquals("Invalid password", exception.getMessage());
+        assertUserAccountException(() -> authService.authenticate(
+                user.getUsername(), "wrongPassword"), "Invalid password");
     }
 
     @Test
@@ -114,11 +114,8 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         // When
-        UserAccountException exception = assertThrows(UserAccountException.class, () ->
-                authService.authenticate(user.getUsername(), user.getPassword()));
-
-        // Then
-        assertEquals("Invalid login credentials", exception.getMessage());
+        assertUserAccountException(() -> authService.authenticate(
+                user.getUsername(), user.getPassword()), "Invalid login credentials");
     }
 
     @Test
@@ -154,10 +151,8 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // When & Then
-        UserAccountException exception = assertThrows(UserAccountException.class,
-                () -> authService.registerUser(user));
-
-        assertEquals(user.getUsername() + " already exist", exception.getMessage());
+        assertUserAccountException(() ->
+                authService.registerUser(user), user.getUsername() + " already exist");
     }
 
     @Test
@@ -176,17 +171,19 @@ class AuthServiceTest {
         verify(userRepository, times(1)).save(user);
     }
 
+    private void assertUserAccountException(Executable action, String expectedMessage) {
+        UserAccountException exception = assertThrows(UserAccountException.class, action);
+        assertEquals(expectedMessage, exception.getMessage());
+    }
+
     @Test
     void testChangePasswordUserNotFound() {
         // Given & When
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         // Then
-        UserAccountException exception = assertThrows(UserAccountException.class,
-                () -> authService.changePassword(
-                        user.getUsername(), "anyPassword", "newPassword"));
-
-        assertEquals("User not found", exception.getMessage());
+        assertUserAccountException(() -> authService.changePassword(
+                        user.getUsername(), "anyPassword", "newPassword"), "User not found");
     }
 
     @Test
@@ -195,11 +192,8 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // Then
-        UserAccountException exception = assertThrows(UserAccountException.class,
-                () -> authService.changePassword(
-                        user.getUsername(), "wrongPassword", "newPassword"));
-
-        assertEquals("Invalid current password", exception.getMessage());
+        assertUserAccountException(() -> authService.changePassword(
+                user.getUsername(), "wrongPassword", "newPassword"), "Invalid current password");
     }
 
     @Test
@@ -269,10 +263,8 @@ class AuthServiceTest {
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         // When & Then
-        UserAccountException exception = assertThrows(UserAccountException.class,
-                () -> authService.deleteUserAccount(user.getUsername()));
-
-        assertEquals("User account not found", exception.getMessage());
+        assertUserAccountException(
+                () -> authService.deleteUserAccount(user.getUsername()), "User account not found");
     }
 
     @Test

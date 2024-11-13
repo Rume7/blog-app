@@ -32,11 +32,12 @@ class JwtUtilTest {
     void testGenerateToken() {
         // Given & When
         String token = jwtUtil.generateToken(TEST_USERNAME);
+        final int tokenStructureSize = 3;
 
         // Then
         assertNotNull(token);
         assertFalse(token.isEmpty());
-        assertEquals(token.split("\\.").length, 3); // Verify JWT structure
+        assertEquals(token.split("\\.").length, tokenStructureSize); // Verify JWT structure
     }
 
     @Test
