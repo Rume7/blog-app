@@ -1,6 +1,7 @@
 package com.codehacks.blog.controller;
 
 import com.codehacks.blog.config.SecurityConfig;
+import com.codehacks.blog.dto.PasswordChangeRequest;
 import com.codehacks.blog.dto.RegisterRequest;
 import com.codehacks.blog.dto.RoleChangeRequest;
 import com.codehacks.blog.dto.UserDTO;
@@ -8,6 +9,7 @@ import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
+import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
@@ -20,9 +22,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@EnableAspectJAutoProxy
 @WebMvcTest(AuthController.class)
 @Import({SecurityConfig.class, AuthService.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -67,6 +72,9 @@ class AuthControllerTest {
     @MockBean
     private JwtUtil jwtUtil;
 
+    @Mock
+    private UserRepository userRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
@@ -78,7 +86,7 @@ class AuthControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideRolesAndExpectedStatusForAddUser")
+    @MethodSource("provideRolesAndExpectedStatusForUsers")
     void testAddUserWithDifferentRoles(Role role, HttpStatus expectedStatus) throws Exception {
         RegisterRequest registerRequest = new RegisterRequest("testUser",
                 "Register123Password", "user@example.com");
@@ -88,19 +96,61 @@ class AuthControllerTest {
         when(authService.registerUser(any(User.class))).thenReturn(userDTO);
 
         mockMvc.perform(post(Constants.AUTH_PATH + "/register")
-                .with(user("testUser").roles(role.name().replace("ROLE_", "")))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
+                        .with(user("testUser").roles(role.name().replace("ROLE_", "")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
                 .andDo(print())
                 .andExpect(status().is(expectedStatus.value()));
     }
 
-    private static Stream<Arguments> provideRolesAndExpectedStatusForAddUser() {
+    private static Stream<Arguments> provideRolesAndExpectedStatusForUsers() {
         return Stream.of(
                 Arguments.of(Role.USER, HttpStatus.OK),
                 Arguments.of(Role.SUBSCRIBER, HttpStatus.OK),
                 Arguments.of(Role.ADMIN, HttpStatus.OK)
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideRolesAndExpectedStatusForUsers")
+    void changePasswordWithDifferentRoles_Success(Role role, HttpStatus expectedStatus) throws Exception {
+        PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPassword123", "newPassword&12");
+
+        doNothing().when(authService).changePassword(request.username(), request.currentPassword(), request.newPassword());
+
+        ResultActions resultActions = mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+                        .with(user("testUser").roles(role.name().replace("ROLE_", "")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)));
+
+        if (expectedStatus == HttpStatus.OK) {
+            resultActions.andExpect(status().isOk()).andDo(print());
+        }
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = {"GUEST"})
+    void changePassword_withUnauthorizedRole_shouldBeForbidden() throws Exception {
+        PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPass123", "newPassword&12");
+
+        // When & Then
+        mockMvc.perform(put("/api/v1/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUBSCRIBER")
+    void changePassword_InvalidRequest_BadRequest() throws Exception {
+        PasswordChangeRequest request = new PasswordChangeRequest("", "", "");
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).changePassword(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -118,7 +168,8 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Role changed successfully"));
+                .andExpect(content().string("Role changed successfully"))
+                .andDo(print());
 
         verify(authService).changeUserRole(request.username(), request.userRole());
     }
@@ -178,7 +229,6 @@ class AuthControllerTest {
         verify(authService).changeUserRole(request.username(), request.userRole());
     }
 
-
     @ParameterizedTest
     @MethodSource("provideRolesAndExpectedStatusForDeleteUserNotFound")
     void testDeleteUserNotFoundWithDifferentRoles(Role role, HttpStatus expectedStatus) throws Exception {
@@ -191,7 +241,7 @@ class AuthControllerTest {
         doThrow(new UserAccountException("User account not found")).when(authService).deleteUserAccount(username);
 
         ResultActions resultActions = mockMvc.perform(delete(Constants.AUTH_PATH + "/delete-account")
-                .with(user(userDetails))
+                        .with(user(userDetails))
                         .param("username", username)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print());

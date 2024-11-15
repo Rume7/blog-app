@@ -66,8 +66,12 @@ public class AuthController {
     @PreAuthorize("hasRole('SUBSCRIBER')")
     @RateLimit(maxRequests = 3, timeWindowMinutes = 1)
     public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
-        authService.changePassword(request.username(), request.currentPassword(), request.newPassword());
-        return ResponseEntity.ok("Password changed successfully");
+        try {
+            authService.changePassword(request.username(), request.currentPassword(), request.newPassword());
+            return ResponseEntity.ok("Password changed successfully");
+        } catch (UserAccountException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PutMapping(value = "/change-role", produces = "application/json")
