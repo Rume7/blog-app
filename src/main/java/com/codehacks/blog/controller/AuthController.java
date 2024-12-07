@@ -52,12 +52,12 @@ public class AuthController {
     @PreAuthorize("permitAll()")
     @RateLimit(maxRequests = 5, timeWindowMinutes = 1)
     public ResponseEntity<String> login(@RequestBody @Valid LoginRequest request) throws TokenExpirationException {
-        if (!tokenService.hasExistingToken(request.username())) {
-            String token = authService.authenticate(request.username(), request.password());
-            tokenService.storeToken(request.username(), token);
+        if (!tokenService.hasExistingToken(request.email())) {
+            String token = authService.authenticate(request.email(), request.password());
+            tokenService.storeToken(request.email(), token);
             return ResponseEntity.ok("Login Successful");
         }
-        String existingToken = tokenService.getExistingToken(request.username());
+        String existingToken = tokenService.getExistingToken(request.email());
         boolean validToken = tokenService.isTokenValid(request.password(), existingToken);
         return validToken ? ResponseEntity.ok().build() : ResponseEntity.ok("Session has expired.");
     }

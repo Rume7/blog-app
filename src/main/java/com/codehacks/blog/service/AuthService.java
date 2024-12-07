@@ -25,15 +25,15 @@ public class AuthService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public String authenticate(String username, String password) {
-        User user = userRepository.findByUsername(username)
+    public String authenticate(String email, String password) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserAccountException("Invalid login credentials"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new UserAccountException("Invalid password");
         }
 
-        return jwtUtil.generateToken(username);
+        return jwtUtil.generateToken(email);
     }
 
     public UserDTO registerUser(User user) {
@@ -86,19 +86,19 @@ public class AuthService {
 
     /**
      * TODO: method to log admin logins to the application
-     * @param username
+     * @param email
      * @param clientIP
      */
-    public void logAdminAccess(String username, String clientIP) {
+    public void logAdminAccess(String email, String clientIP) {
 
     }
 
     /**
      * TODO: Method to log unauthorized admin access to the application
-     * @param username
+     * @param email
      * @param clientIP
      */
-    public void reportUnauthorizedAdminAccess(String username, String clientIP) {
+    public void reportUnauthorizedAdminAccess(String email, String clientIP) {
 
     }
 

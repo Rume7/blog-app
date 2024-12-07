@@ -60,36 +60,36 @@ class AuthServiceTest {
         // Given
         String password = "password";
 
-        when(userRepository.findByUsername("testUser")).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(user.getUsername())).thenReturn("testToken");
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user.getEmail())).thenReturn("testToken");
 
         // When
-        String result = authService.authenticate("testUser", password);
+        String result = authService.authenticate("user@example.com", password);
 
         // Then
         assertEquals("testToken", result);
-        verify(userRepository, times(1)).findByUsername("testUser");
-        verify(jwtUtil, times(1)).generateToken(user.getUsername());
+        verify(userRepository, times(1)).findByEmail("user@example.com");
+        verify(jwtUtil, times(1)).generateToken(user.getEmail());
     }
 
     @Test
     void testAuthenticateUserNotFound() {
         // Given & When
-        when(userRepository.findByUsername("nonExistentUser")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonExistentUser@example.com")).thenReturn(Optional.empty());
 
         // Then
         assertThrows(UserAccountException.class,
-                () -> authService.authenticate("nonExistentUser", "password"));
+                () -> authService.authenticate("nonExistentUser@example.com", "password"));
     }
 
     @Test
     void testAuthenticateInvalidPassword() {
         // Given & When
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
         // Then
         assertUserAccountException(() -> authService.authenticate(
-                user.getUsername(), "wrongPassword"), "Invalid password");
+                user.getEmail(), "wrongPassword"), "Invalid password");
     }
 
     @Test
@@ -97,12 +97,12 @@ class AuthServiceTest {
         // Given
         String password = "password";
 
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(user.getUsername())).thenReturn("validJwtToken");
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user.getEmail())).thenReturn("validJwtToken");
 
 
         // When
-        String token = authService.authenticate("testUser", password);
+        String token = authService.authenticate("user@example.com", password);
 
         // Then
         assertEquals("validJwtToken", token);
@@ -111,11 +111,11 @@ class AuthServiceTest {
     @Test
     void authenticate_whenInvalidUsername_thenThrowException() {
         // Given
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
 
         // When
         assertUserAccountException(() -> authService.authenticate(
-                user.getUsername(), user.getPassword()), "Invalid login credentials");
+                user.getEmail(), user.getPassword()), "Invalid login credentials");
     }
 
     @Test
