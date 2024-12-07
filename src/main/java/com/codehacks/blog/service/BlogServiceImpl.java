@@ -48,10 +48,14 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public Post createPost(Post post) throws InvalidPostException {
-        if (post.getTitle() == null ||
-            post.getTitle().trim().length() < 8 ||
-            post.getTitle().length() > 100) {
-            throw new InvalidPostException("Post title must be between 8 and 100 characters");
+        if (post.getTitle() == null) {
+            throw new InvalidPostException("Title cannot be null");
+        }
+        if (post.getTitle().trim().length() < 8) {
+            throw new InvalidPostException("Title length is too short");
+        }
+        if (post.getTitle().trim().length() > 100) {
+            throw new InvalidPostException("Title length is too long");
         }
         Author savedAuthor = authorRepository.save(post.getAuthor());
         post.setAuthor(savedAuthor);

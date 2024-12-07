@@ -47,11 +47,9 @@ class BlogServiceImplTest {
 
     @Test
     void shouldCreatePostSuccessfully() throws InvalidPostException {
-        // Given
+        // Given & When
         when(authorRepository.save(any(Author.class))).thenReturn(testAuthor);
         when(blogRepository.save(any(Post.class))).thenReturn(testPost);
-
-        // When
         Post result = blogService.createPost(testPost);
 
         // Then
@@ -85,9 +83,10 @@ class BlogServiceImplTest {
     void shouldReturnUniquePostsWhenDuplicatesExist() {
         // Given
         List<Post> duplicatePosts = Arrays.asList(testPost, testPost);
-        when(blogRepository.findAll()).thenReturn(duplicatePosts);
-        
+
         // When
+        when(blogRepository.findAll()).thenReturn(duplicatePosts);
+
         Set<Post> result = blogService.getAllPosts();
         
         // Then
@@ -103,11 +102,12 @@ class BlogServiceImplTest {
         // Given
         Long postId = 1L;
         Post updatedPost = new Post("Updated Title", "Updated Content");
+
+        // When
         when(blogRepository.existsById(postId)).thenReturn(true);
         when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
         when(blogRepository.save(any(Post.class))).thenReturn(updatedPost);
 
-        // When
         Post result = blogService.updatePost(updatedPost, postId);
 
         // Then
@@ -229,7 +229,7 @@ class BlogServiceImplTest {
                 () -> blogService.createPost(invalidPost));
 
         // Then
-        assertEquals("Post title must be between 8 and 100 characters", exception.getMessage());
+        assertEquals("Title length is too short", exception.getMessage());
         verify(blogRepository, never()).save(any());
     }
 
