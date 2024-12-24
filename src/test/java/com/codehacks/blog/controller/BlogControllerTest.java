@@ -35,6 +35,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @EnableAspectJAutoProxy
@@ -92,5 +93,25 @@ class BlogControllerTest {
     private UserDetails createUserDetails(String username, Role role) {
         return new CustomUserDetails(username, "Register123Password", "user@example.com",
                 role, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name())), true);
+    }
+
+    @Test
+    void createPostWithIncorrectTitleLength() throws InvalidPostException, Exception {
+        String username = "testUser";
+        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+
+        Post newPost = new Post("Title", "This is a post you would like to read");
+
+        when(blogService.createPost(newPost)).thenThrow(new InvalidPostException("Title length is too short"));
+
+        ResultActions resultActions = mockMvc.perform(post(Constants.BLOG_PATH + "/create")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newPost)))
+                .andDo(print());
+
+        resultActions.andExpect(jsonPath("$.message").value("Title length is too short"));
+        resultActions.andExpect(status().isBadRequest());
+        verify(blogService, times(1)).createPost(newPost);
     }
 }
