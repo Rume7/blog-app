@@ -57,12 +57,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Validation failed"));
     }
 
+    @ExceptionHandler(InvalidPostException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiResponse<?>> handleInvalidPostException(InvalidPostException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiResponse<Object>> handleGenericError(Exception ex) {
         logger.error("Unexpected error occurred: ", ex);
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("An unexpected error occurred"));
     }
 }
