@@ -116,10 +116,10 @@ class SecurityConfigTest {
     @Test
     void givenValidCorsConfig_whenMakingCorsRequest_thenPass() throws Exception {
         mockMvc.perform(options(Constants.AUTH_PATH + "/login")
-                        .header("Origin", "https://trusted-domain.com")
+                        .header("Origin", "http://localhost:4200")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "https://trusted-domain.com"));
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
     }
 
     @Test
