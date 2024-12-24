@@ -13,6 +13,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -20,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -73,6 +79,7 @@ class AuthControllerIT {
         User user = new User();
         user.setUsername("testUser");
         user.setPassword("password");
+        user.setEmail("user@example.com");
 
         // When & Then
         mockMvc.perform(post("/api/auth/register")
@@ -86,10 +93,11 @@ class AuthControllerIT {
         // Given
         User user = new User();
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
-        String jsonRequest = "{\"username\":\"testUser\",\"password\":\"password\"}";
+        String jsonRequest = "{\"email\":\"user@example.com\",\"password\":\"password\"}";
 
         // When & Then
         mockMvc.perform(post("/api/auth/login")
@@ -104,6 +112,7 @@ class AuthControllerIT {
         // Given
         User user = new User();
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
@@ -119,7 +128,7 @@ class AuthControllerIT {
                 .andExpect(status().isOk());
 
         // Then
-        User updatedUser = userRepository.findByUsername("testUser").orElseThrow();
+        User updatedUser = userRepository.findByEmail("user@example.com").orElseThrow();
         assert(new BCryptPasswordEncoder().matches(newPassword, updatedUser.getPassword()));
     }
 
@@ -128,13 +137,14 @@ class AuthControllerIT {
         // Given
         User user = new User();
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
 
         // When
         mockMvc.perform(put("/api/auth/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"currentPassword\":\"wrongpassword\", \"newPassword\":\"newpassword\"}"))
+                        .content("{\"currentPassword\":\"wrongpassword\", \"newPassword\":\"newpassword\", \"email\":\"user@example.com\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -143,8 +153,14 @@ class AuthControllerIT {
         // Given
         User user = new User();
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        Authentication authentication = new UsernamePasswordAuthenticationToken("testUser", null, Collections.emptyList());
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
 
         // When
         mockMvc.perform(delete("/api/auth/delete-account")
@@ -153,7 +169,7 @@ class AuthControllerIT {
                 .andExpect(status().isNoContent());
 
         // Then
-        assert(userRepository.findByUsername("testUser").isEmpty());
+        assert(userRepository.findByEmail("user@example.com").isEmpty());
     }
 
     @Test
@@ -161,9 +177,16 @@ class AuthControllerIT {
         // Given
         User user = new User();
         user.setUsername("testUser");
+        user.setEmail("user@example.com");
         user.setPassword(new BCryptPasswordEncoder().encode("password"));
         userRepository.save(user);
         String nonExistentUsername = "nonexistentuser";
+
+        // Set up security context
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        Authentication authentication = new UsernamePasswordAuthenticationToken(nonExistentUsername, null, Collections.emptyList());
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
 
         // When & Then
         mockMvc.perform(delete("/api/auth/delete-account")
