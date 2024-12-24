@@ -134,7 +134,7 @@ class AuthControllerTest {
         PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPass123", "newPassword&12");
 
         // When & Then
-        mockMvc.perform(put("/api/v1/auth/change-password")
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
