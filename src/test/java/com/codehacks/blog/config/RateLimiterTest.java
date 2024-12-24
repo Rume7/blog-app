@@ -9,7 +9,6 @@ import org.aspectj.lang.Signature;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import static org.mockito.Mockito.*;
-import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,13 +17,12 @@ class RateLimiterTest {
     private RateLimiter rateLimiter;
     private ProceedingJoinPoint joinPoint;
     private RateLimit rateLimit;
-    private Signature signature;
 
     @BeforeEach
     void setUp() {
         rateLimiter = new RateLimiter();
         joinPoint = mock(ProceedingJoinPoint.class);
-        signature = mock(Signature.class);
+        Signature signature = mock(Signature.class);
         rateLimit = mock(RateLimit.class);
 
         when(joinPoint.getSignature()).thenReturn(signature);
