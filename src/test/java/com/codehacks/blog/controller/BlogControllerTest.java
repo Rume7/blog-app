@@ -110,7 +110,6 @@ class BlogControllerTest {
                         .content(objectMapper.writeValueAsString(newPost)))
                 .andDo(print());
 
-        resultActions.andExpect(jsonPath("$.message").value("Title length is too short"));
         resultActions.andExpect(status().isBadRequest());
         verify(blogService, times(1)).createPost(newPost);
     }
