@@ -22,7 +22,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
-
+    private final AdminService adminService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public String authenticate(String email, String password) {
@@ -84,22 +84,12 @@ public class AuthService {
         userRepository.delete(user);
     }
 
-    /**
-     * TODO: method to log admin logins to the application
-     * @param email
-     * @param clientIP
-     */
-    public void logAdminAccess(String email, String clientIP) {
-
+    public void logAdminAccess(String email, String ipAddress) {
+        adminService.logAdminAccess(email, ipAddress);
     }
 
-    /**
-     * TODO: Method to log unauthorized admin access to the application
-     * @param email
-     * @param clientIP
-     */
-    public void reportUnauthorizedAdminAccess(String email, String clientIP) {
-
+    public void reportUnauthorizedAdminAccess(String email, String ipAddress) {
+        adminService.reportUnauthorizedAdminAccess(email, ipAddress);
     }
 
     public boolean canUserDeleteAccount(String username, UserDetails userDetails) {
