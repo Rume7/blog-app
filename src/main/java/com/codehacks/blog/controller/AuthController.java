@@ -59,7 +59,9 @@ public class AuthController {
         }
         String existingToken = tokenService.getExistingToken(request.email());
         boolean validToken = tokenService.isTokenValid(request.password(), existingToken);
-        return validToken ? ResponseEntity.ok().build() : ResponseEntity.ok("Session has expired.");
+        return validToken
+                ? ResponseEntity.ok("Login Successful")
+                : ResponseEntity.ok("Session has expired.");
     }
 
     @PutMapping(value = "/change-password", produces = "application/json")
@@ -105,14 +107,15 @@ public class AuthController {
     @PostMapping("/admin-only")
     @PreAuthorize("isAuthenticated()")
     @RateLimit(maxRequests = 3, timeWindowMinutes = 5)
-    public ResponseEntity<String> adminEndpoint(@AuthenticationPrincipal CustomUserDetails userDetails, HttpServletRequest request) {
-        String clientIP = request.getRemoteAddr();
-        authService.logAdminAccess(userDetails.getUsername(), clientIP);
+    public ResponseEntity<String> adminEndpoint(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                HttpServletRequest request) {
+        String ipAddress = request.getRemoteAddr();
+        authService.logAdminAccess(userDetails.getUsername(), ipAddress);
 
         if (userDetails.getRole() == Role.ADMIN) {
             return ResponseEntity.ok("Admin access granted");
         }
-        authService.reportUnauthorizedAdminAccess(userDetails.getUsername(), clientIP);
+        authService.reportUnauthorizedAdminAccess(userDetails.getUsername(), ipAddress);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
     }
 }
