@@ -57,7 +57,7 @@ public class BlogController {
     }
 
     @DeleteMapping(value = "/delete/{id}", produces = "application/json")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePost(@PathVariable Long id) throws InvalidPostException {
         boolean deletePost = blogService.deletePost(id);
         if (deletePost) {
             return ResponseEntity.noContent().build();
@@ -65,4 +65,3 @@ public class BlogController {
         return ResponseEntity.notFound().build();
     }
 }
-
