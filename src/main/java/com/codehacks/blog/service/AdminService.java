@@ -20,7 +20,7 @@ public class AdminService {
     public void logAdminAccess(String adminEmail, String ipAddress) {
         LocalDateTime timestamp = LocalDateTime.now();
 
-        logger.info("Admin access detected: Email = {}, IP Address = {} at ",
+        logger.info("Admin access detected: Email = {}, IP Address = {} at {}",
                 adminEmail, ipAddress, timestamp);
 
         String redisKey = "admin:access:" + adminEmail;

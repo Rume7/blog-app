@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private final String KEY_PREFIX = "token:";
+    private static final String KEY_PREFIX = "token:";
 
     @Autowired
     public TokenService(RedisTemplate<String, String> redisTemplate) {

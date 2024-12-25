@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidPostException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiResponse<?>> handleInvalidPostException(InvalidPostException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleInvalidPostException(InvalidPostException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));
