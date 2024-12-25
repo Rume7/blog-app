@@ -152,7 +152,7 @@ class BlogServiceImplTest {
     }
 
     @Test
-    void shouldDeletePostSuccessfully() {
+    void shouldDeletePostSuccessfully() throws InvalidPostException {
         // Given
         Long postId = 1L;
         when(blogRepository.existsById(postId)).thenReturn(true);

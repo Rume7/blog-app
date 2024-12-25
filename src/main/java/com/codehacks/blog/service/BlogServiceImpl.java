@@ -78,7 +78,10 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public Boolean deletePost(Long blogId) {
+    public Boolean deletePost(Long blogId) throws InvalidPostException {
+        if (blogId <= 0) {
+            throw new InvalidPostException("Post cannot have a non-positive id");
+        }
         if (blogRepository.existsById(blogId)) {
             blogRepository.deleteById(blogId);
             return true;

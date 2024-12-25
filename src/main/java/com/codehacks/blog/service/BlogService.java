@@ -21,5 +21,5 @@ public interface BlogService {
 
     Post updatePost(final Post post, Long blogId);
 
-    Boolean deletePost(Long blogId);
+    Boolean deletePost(Long blogId) throws InvalidPostException;
 }
