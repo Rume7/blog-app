@@ -1,6 +1,7 @@
 package com.codehacks.blog.model;
 
 import com.codehacks.blog.util.Constants;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -40,6 +41,7 @@ public class Post {
     @OneToOne(cascade = CascadeType.ALL)
     private Author author;
 
+    @JsonManagedReference
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PostComment> allComments;
 

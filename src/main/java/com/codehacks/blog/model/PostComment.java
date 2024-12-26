@@ -1,5 +1,6 @@
 package com.codehacks.blog.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class PostComment {
     @NotBlank(message = "Comment is required")
     private String comment;
 
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
