@@ -6,6 +6,7 @@ import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.repository.AuthorRepository;
 import com.codehacks.blog.repository.BlogRepository;
+import com.codehacks.blog.util.Constants;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -51,10 +52,10 @@ public class BlogServiceImpl implements BlogService {
         if (post.getTitle() == null) {
             throw new InvalidPostException("Title cannot be null");
         }
-        if (post.getTitle().trim().length() < 8) {
+        if (post.getTitle().trim().length() < Constants.MIN_TITLE_LENGTH) {
             throw new InvalidPostException("Title length is too short");
         }
-        if (post.getTitle().trim().length() > 100) {
+        if (post.getTitle().trim().length() > Constants.MAX_TITLE_LENGTH) {
             throw new InvalidPostException("Title length is too long");
         }
         Author savedAuthor = authorRepository.save(post.getAuthor());
