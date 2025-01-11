@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.exception.TokenExpirationException;
+import com.codehacks.blog.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -12,10 +13,12 @@ public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String KEY_PREFIX = "token:";
+    private JwtUtil jwtUtil;
 
     @Autowired
-    public TokenService(RedisTemplate<String, String> redisTemplate) {
+    public TokenService(RedisTemplate<String, String> redisTemplate, JwtUtil jwtUtil) {
         this.redisTemplate = redisTemplate;
+        this.jwtUtil = jwtUtil;
     }
 
     public boolean hasExistingToken(String username) {
@@ -35,6 +38,9 @@ public class TokenService {
     }
 
     public boolean isTokenValid(String username, String token) {
+        if (!jwtUtil.validateToken(username, token)) {
+            return false;
+        }
         String storedToken = redisTemplate.opsForValue().get(KEY_PREFIX + username);
         return token.equals(storedToken);
     }
