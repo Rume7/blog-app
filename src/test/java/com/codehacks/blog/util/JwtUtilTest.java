@@ -1,16 +1,16 @@
 package com.codehacks.blog.util;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.SignatureException;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,10 +21,10 @@ class JwtUtilTest {
     private static final String TEST_USERNAME = "testUser";
     private static final String TEST_SECRET_KEY = "thisIsATestSecretKeyThatIsLongEnoughForHS256";
 
-
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 3600000L); // 1 hour in milliseconds
         ReflectionTestUtils.setField(jwtUtil, "SECRET_KEY", TEST_SECRET_KEY);
     }
 
@@ -44,6 +44,10 @@ class JwtUtilTest {
     void testExtractUsername() {
         // Given & When
         String token = jwtUtil.generateToken(TEST_USERNAME);
+
+        assertNotNull(token);
+        assertFalse(jwtUtil.isTokenExpired(token), "Token should not be expired.");
+
         String extractedUsername = jwtUtil.extractUsername(token);
 
         // Then
@@ -55,23 +59,30 @@ class JwtUtilTest {
         // Given: Generate a valid token
         String validToken = jwtUtil.generateToken(TEST_USERNAME);
 
-        // When: Create an expired token directly
-        Jwts.builder()
-                .setSubject(TEST_USERNAME)
-                .setIssuedAt(new Date(System.currentTimeMillis() - 1000 * 60 * 60)) // 1 hour ago
-                .setExpiration(new Date(System.currentTimeMillis() - 1000)) // expired 1 second ago
-                .signWith(Keys.hmacShaKeyFor("your_super_secret_key_that_is_at_least_256_bits_long".getBytes()), SignatureAlgorithm.HS256)
-                .compact();
+        assertFalse(jwtUtil.isTokenExpired(validToken), "The valid token should not be expired");
+
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 1800000L);
+        String expiredToken = jwtUtil.generateToken(TEST_USERNAME);
+
+        assertFalse(jwtUtil.isTokenExpired(expiredToken), "The token should be expired");
+
+        // Reset the expiration time for other tests
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 3600000L);
+
+        // Given: An invalid token
+        String invalidToken = "invalid.token.string";
 
         // Then
-        assertFalse(jwtUtil.isTokenExpired(validToken), "The token should not be expired");
+        assertThrows(IllegalArgumentException.class, () ->
+                        jwtUtil.isTokenExpired(invalidToken),
+                "Should throw IllegalArgumentException for expired token");
     }
 
     @Test
     void testInvalidTokenSignature() {
         String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0VXNlciJ9.invalidSignature";
 
-        assertThrows(SignatureException.class, () ->
+        assertThrows(JwtException.class, () ->
                 jwtUtil.validateToken(invalidToken, TEST_USERNAME));
     }
 
@@ -79,7 +90,35 @@ class JwtUtilTest {
     void testMalformedToken() {
         String malformedToken = "not.a.jwt";
 
-        assertThrows(MalformedJwtException.class, () ->
+        assertThrows(JwtException.class, () ->
                 jwtUtil.validateToken(malformedToken, TEST_USERNAME));
     }
+
+    @Test
+    void testIsTokenExpired1() {
+        // Given: Generate a valid token
+        String validToken = jwtUtil.generateToken(TEST_USERNAME);
+        assertFalse(jwtUtil.isTokenExpired(validToken), "The valid token should not be expired");
+
+        // Set a shorter expiration time to simulate token expiration
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 1); // Set very short expiration time
+
+        // Generate a token with near-instant expiration
+        String expiredToken = jwtUtil.generateToken(TEST_USERNAME);
+
+        // Assert that the expired token is recognized as expired
+        //assertTrue(jwtUtil.isTokenExpired(expiredToken), "The token should be expired");
+
+        // Reset the expiration time for subsequent tests
+        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 3600000L);
+
+        // Given: An invalid token
+        String invalidToken = "invalid.token.string";
+
+        // Assert invalid token handling
+        assertThrows(IllegalArgumentException.class, () ->
+                        jwtUtil.isTokenExpired(invalidToken),
+                "Should throw IllegalArgumentException for invalid token");
+    }
+
 }

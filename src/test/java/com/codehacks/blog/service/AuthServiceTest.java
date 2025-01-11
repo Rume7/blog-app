@@ -100,7 +100,6 @@ class AuthServiceTest {
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         when(jwtUtil.generateToken(user.getEmail())).thenReturn("validJwtToken");
 
-
         // When
         String token = authService.authenticate("user@example.com", password);
 
