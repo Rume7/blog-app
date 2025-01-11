@@ -19,7 +19,6 @@ import java.util.Set;
 @RestController
 @RequestMapping(Constants.BLOG_PATH)
 @AllArgsConstructor
-@CrossOrigin("http://localhost:4200")
 public class BlogController {
 
     private final BlogService blogService;
