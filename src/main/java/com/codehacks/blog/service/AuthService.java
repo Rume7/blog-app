@@ -33,7 +33,7 @@ public class AuthService {
             throw new UserAccountException("Invalid password");
         }
 
-        return jwtUtil.generateToken(email);
+        return jwtUtil.generateToken(user.getEmail());
     }
 
     public UserDTO registerUser(User user) {

@@ -51,17 +51,23 @@ public class AuthController {
     @PostMapping(value = "/login", produces = "application/json")
     @PreAuthorize("permitAll()")
     @RateLimit(maxRequests = 5, timeWindowMinutes = 1)
-    public ResponseEntity<String> login(@RequestBody @Valid LoginRequest request) throws TokenExpirationException {
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequest request) throws TokenExpirationException {
+        String token;
         if (!tokenService.hasExistingToken(request.email())) {
-            String token = authService.authenticate(request.email(), request.password());
+            token = authService.authenticate(request.email(), request.password());
             tokenService.storeToken(request.email(), token);
-            return ResponseEntity.ok("Login Successful");
+        } else {
+            String existingToken = tokenService.getExistingToken(request.email());
+            boolean validToken = tokenService.isTokenValid(request.password(), existingToken);
+            if (validToken) {
+                token = existingToken;
+            } else {
+                token = authService.authenticate(request.email(), request.password());
+                tokenService.storeToken(request.email(), token);
+            }
         }
-        String existingToken = tokenService.getExistingToken(request.email());
-        boolean validToken = tokenService.isTokenValid(request.password(), existingToken);
-        return validToken
-                ? ResponseEntity.ok("Login Successful")
-                : ResponseEntity.ok("Session has expired.");
+        LoginResponseDTO loginResponse = new LoginResponseDTO(token, "Login successful");
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PutMapping(value = "/change-password", produces = "application/json")
