@@ -5,7 +5,6 @@ import com.codehacks.blog.dto.RoleChangeRequest;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
-import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +24,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,12 +64,12 @@ class SecurityConfigTest {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    private static final String AUTH_PATH = "/api/v1/auth";
+
     @BeforeEach
     void setUp() {
-        // Clear any pre-existing users
         userRepository.deleteAll();
 
-        // Create and save a test user
         User testUser = new User();
         testUser.setUsername("testUser");
         testUser.setEmail("testuser@example.com");
@@ -77,7 +77,6 @@ class SecurityConfigTest {
         testUser.setRole(Role.USER);
         userRepository.save(testUser);
 
-        // Create and save an admin user
         User adminUser = new User();
         adminUser.setUsername("admin");
         adminUser.setEmail("admin@example.com");
@@ -89,8 +88,9 @@ class SecurityConfigTest {
     @Test
     @WithMockUser(username = "testUser", roles = "USER")
     void givenUserWithRoleUser_whenAccessRestrictedEndpoint_thenForbidden() throws Exception {
-        mockMvc.perform(get(Constants.AUTH_PATH + "/delete-account")
-                        .with(csrf()))
+        mockMvc.perform(get(AUTH_PATH + "/delete-account")
+                        .with(csrf().asHeader())
+                        .with(user("testUser").roles("USER")))
                 .andExpect(status().isForbidden());
     }
 
@@ -99,7 +99,7 @@ class SecurityConfigTest {
     void givenUserWithAdminRole_whenAccessAdminEndpoint_thenOk() throws Exception {
         RoleChangeRequest roleChangeRequest = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
 
-        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+        mockMvc.perform(put(AUTH_PATH + "/change-role")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(roleChangeRequest)))
@@ -108,14 +108,14 @@ class SecurityConfigTest {
 
     @Test
     void givenNoAuth_whenAccessRestrictedEndpoint_thenUnauthorized() throws Exception {
-        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+        mockMvc.perform(put(AUTH_PATH + "/change-password")
                         .with(csrf()))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void givenValidCorsConfig_whenMakingCorsRequest_thenPass() throws Exception {
-        mockMvc.perform(options(Constants.AUTH_PATH + "/login")
+        mockMvc.perform(options(AUTH_PATH + "/login")
                         .header("Origin", "http://localhost:4200")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isOk())
@@ -124,7 +124,7 @@ class SecurityConfigTest {
 
     @Test
     void givenInvalidCorsConfig_whenMakingCorsRequest_thenFail() throws Exception {
-        mockMvc.perform(options(Constants.AUTH_PATH + "/login")
+        mockMvc.perform(options(AUTH_PATH + "/login")
                         .header("Origin", "https://untrusted-domain.com")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isForbidden());
@@ -135,7 +135,7 @@ class SecurityConfigTest {
     void testSecurityConfigurationWithAdminRole() throws Exception {
         RoleChangeRequest roleChangeRequest = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
 
-        mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
+        mockMvc.perform(put(AUTH_PATH + "/change-role")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(roleChangeRequest)))
@@ -151,7 +151,8 @@ class SecurityConfigTest {
                 .newPassword("newPass@123X")
                 .build();
 
-        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+        mockMvc.perform(put(AUTH_PATH + "/change-password")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(passwordChangeRequest)))
                 .andExpect(status().isOk());
