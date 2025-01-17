@@ -32,13 +32,20 @@ public class SecurityConfig {
                 })
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/api/v1/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/api/v1/blog/**",
-                                "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        .requestMatchers("/swagger-ui/**",
+                                                        "/v3/api-docs/**",
+                                                        "/api-docs/**",
+                                                        "/api/v1/blog/**",
+                                                        "/api/v1/auth/register",
+                                                        "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
-                        .requestMatchers("/api/v1/auth/change-password")
-                            .hasAnyRole(Role.USER.name(), Role.SUBSCRIBER.name(), Role.ADMIN.name())
-                        .requestMatchers("/api/v1/auth/delete-account", "/api/v1/auth/change-role")
-                            .hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
+                        .requestMatchers("/api/v1/auth/change-password").hasAnyRole(
+                                                                        Role.USER.name(),
+                                                                        Role.SUBSCRIBER.name(),
+                                                                        Role.ADMIN.name())
+                        .requestMatchers("/api/v1/auth/delete-account",
+                                                        "/api/v1/auth/change-role").hasAnyRole(Role.ADMIN.name(),
+                                                                                                Role.SUBSCRIBER.name())
                         .anyRequest().authenticated())
                 .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -55,7 +62,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:4200", "https://localhost:4200"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:4200", "http://localhost:8080"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setExposedHeaders(List.of("Authorization"));
@@ -63,7 +70,7 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration(  "/api/v1/**", configuration);
+        source.registerCorsConfiguration(  "/**", configuration);
         return source;
     }
 }
