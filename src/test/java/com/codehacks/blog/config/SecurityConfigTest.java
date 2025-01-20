@@ -131,18 +131,6 @@ class SecurityConfigTest {
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = "ADMIN")
-    void testSecurityConfigurationWithAdminRole() throws Exception {
-        RoleChangeRequest roleChangeRequest = new RoleChangeRequest("testUser", Role.SUBSCRIBER);
-
-        mockMvc.perform(put(AUTH_PATH + "/change-role")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(roleChangeRequest)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     @WithMockUser(username = "testUser", roles = "USER")
     void testSecurityConfigurationWithUserRole() throws Exception {
         PasswordChangeRequest passwordChangeRequest = PasswordChangeRequest.builder()

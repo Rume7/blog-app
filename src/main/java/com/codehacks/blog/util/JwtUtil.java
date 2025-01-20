@@ -11,6 +11,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
+    public static final String INVALID_OR_EXPIRED_TOKEN_MESSAGE = "Invalid or expired JWT token";
     private final String SECRET_KEY = "your_very_strong_secret_key_of_at_least_256_bits";
 
     @Value("${jwt.expiration-time}")
@@ -34,7 +35,7 @@ public class JwtUtil {
                     .getBody()
                     .getSubject();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
+            throw new IllegalArgumentException(INVALID_OR_EXPIRED_TOKEN_MESSAGE);
         }
     }
 
@@ -42,7 +43,7 @@ public class JwtUtil {
         try {
             return extractExpiration(token).before(Date.from(Instant.now()));
         } catch (JwtException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
+            throw new IllegalArgumentException(INVALID_OR_EXPIRED_TOKEN_MESSAGE);
         }
     }
 
@@ -55,7 +56,7 @@ public class JwtUtil {
                     .getBody()
                     .getExpiration();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid or expired JWT token");
+            throw new IllegalArgumentException(INVALID_OR_EXPIRED_TOKEN_MESSAGE);
         }
     }
 

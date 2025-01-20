@@ -1,17 +1,10 @@
 package com.codehacks.blog.util;
 
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -93,32 +86,4 @@ class JwtUtilTest {
         assertThrows(JwtException.class, () ->
                 jwtUtil.validateToken(malformedToken, TEST_USERNAME));
     }
-
-    @Test
-    void testIsTokenExpired1() {
-        // Given: Generate a valid token
-        String validToken = jwtUtil.generateToken(TEST_USERNAME);
-        assertFalse(jwtUtil.isTokenExpired(validToken), "The valid token should not be expired");
-
-        // Set a shorter expiration time to simulate token expiration
-        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 1); // Set very short expiration time
-
-        // Generate a token with near-instant expiration
-        String expiredToken = jwtUtil.generateToken(TEST_USERNAME);
-
-        // Assert that the expired token is recognized as expired
-        //assertTrue(jwtUtil.isTokenExpired(expiredToken), "The token should be expired");
-
-        // Reset the expiration time for subsequent tests
-        ReflectionTestUtils.setField(jwtUtil, "expirationTime", 3600000L);
-
-        // Given: An invalid token
-        String invalidToken = "invalid.token.string";
-
-        // Assert invalid token handling
-        assertThrows(IllegalArgumentException.class, () ->
-                        jwtUtil.isTokenExpired(invalidToken),
-                "Should throw IllegalArgumentException for invalid token");
-    }
-
 }

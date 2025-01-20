@@ -8,6 +8,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RateLimit {
-    int maxRequests() default 3;
+    int maxRequests() default 20;
     int timeWindowMinutes() default 1;
 }
