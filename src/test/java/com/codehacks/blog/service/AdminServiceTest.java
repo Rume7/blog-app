@@ -21,12 +21,13 @@ class AdminServiceTest {
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
     private final ListOperations<String, String> listOperations = mock(ListOperations.class);
     private AdminService adminService;
+    private SecurityService securityService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(redisTemplate.opsForList()).thenReturn(listOperations);
-        adminService = new AdminService(redisTemplate);
+        adminService = new AdminService(redisTemplate, securityService);
     }
 
     @Test
@@ -66,7 +67,7 @@ class AdminServiceTest {
             Logger mockLogger = mock(Logger.class);
             mockedLoggerFactory.when(() -> LoggerFactory.getLogger(AdminService.class)).thenReturn(mockLogger);
 
-            adminService = new AdminService(redisTemplate);
+            adminService = new AdminService(redisTemplate, securityService);
 
             // When
             adminService.reportUnauthorizedAdminAccess(adminEmail, ipAddress);

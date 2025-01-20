@@ -12,9 +12,11 @@ public class AdminService {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminService.class);
     private final RedisTemplate<String, String> redisTemplate;
+    private final SecurityService securityService;
 
-    public AdminService(RedisTemplate<String, String> redisTemplate) {
+    public AdminService(RedisTemplate<String, String> redisTemplate, SecurityService securityService) {
         this.redisTemplate = redisTemplate;
+        this.securityService = securityService;
     }
 
     public void logAdminAccess(String adminEmail, String ipAddress) {
@@ -40,15 +42,9 @@ public class AdminService {
         String accessDetails = String.format("IP: %s, Time: %s", ipAddress, LocalDateTime.now());
         redisTemplate.opsForList().rightPush(redisKey, accessDetails);
 
-        // Optionally set an expiry time for the unauthorized access logs (e.g., 30 days)
-        redisTemplate.expire(redisKey, java.time.Duration.ofDays(30));
+        short expiration_days_for_log = 120;
+        redisTemplate.expire(redisKey, java.time.Duration.ofDays(expiration_days_for_log));
 
-        triggerAlert(adminEmail, ipAddress, accessDetails);
-    }
-
-    private void triggerAlert(String adminEmail, String ipAddress, String accessDetails) {
-        logger.error("ALERT: Unauthorized access attempt! Details = {}", accessDetails);
-
-        // TODO: Integrate with an email or notification service to send alerts
+        securityService.handleSuspiciousLogin(adminEmail, ipAddress);
     }
 }
