@@ -21,7 +21,7 @@ class AdminServiceTest {
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
     private final ListOperations<String, String> listOperations = mock(ListOperations.class);
     private AdminService adminService;
-    private SecurityService securityService;
+    private SecurityService securityService = mock(SecurityService.class);
 
     @BeforeEach
     void setUp() {
