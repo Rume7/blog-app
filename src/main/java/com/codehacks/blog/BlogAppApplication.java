@@ -8,8 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class BlogAppApplication {
 
 	public static void main(String[] args) {
-		Dotenv.load(); // Load the .env file
+		Dotenv.configure().load(); // Load the .env file
 		SpringApplication.run(BlogAppApplication.class, args);
 	}
-
 }

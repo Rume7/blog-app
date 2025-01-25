@@ -1,9 +1,12 @@
+version: '3.8'
+
 services:
   postgres:
     image: 'postgres:17.0-alpine'
+    env_file:
+      - .env
     environment:
       - 'POSTGRES_DB=BlogTestDB'
-      - 'POSTGRES_PASSWORD=/run/secrets/db_password'
       - 'POSTGRES_USER=postgres'
     ports:
       - '5432:5432'
@@ -22,8 +25,6 @@ services:
       resources:
         limits:
           memory: 1G
-    secrets:
-      - db_password
 
   redis:
     image: redis:7.2-alpine
@@ -39,7 +40,7 @@ networks:
 
 secrets:
   db_password:
-    file: ./secrets/db_password.txt
+    external: true
 
 volumes:
   postgres_data:
