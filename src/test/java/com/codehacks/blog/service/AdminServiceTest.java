@@ -77,7 +77,7 @@ class AdminServiceTest {
             ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
         
             verify(listOperations).rightPush(keyCaptor.capture(), valueCaptor.capture());
-            verify(redisTemplate).expire(eq(redisKey), eq(java.time.Duration.ofDays(30)));
+            verify(redisTemplate).expire(eq(redisKey), eq(java.time.Duration.ofDays(120)));
         }
     }
 }
