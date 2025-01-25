@@ -108,8 +108,6 @@ class SecurityServiceTest {
         when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
 
         SecurityService securityService = new SecurityService(mailConfigMock, knownIps);
-
-
         sendEmailMethod.invoke(securityService, "test@example.com", "Test Subject", "Test Message");
 
         // Then
