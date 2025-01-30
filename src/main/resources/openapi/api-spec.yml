@@ -1,0 +1,152 @@
+openapi: 3.0.3
+info:
+  title: Blog API
+  description: API documentation for Blog Application
+  version: 1.0.0
+paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register new user
+      tags:
+        - Authentication
+      requestBody:
+        description: User registration details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+
+  /api/v1/auth/login:
+    post:
+      summary: Login a user
+      tags:
+        - Authentication
+      requestBody:
+        description: Login credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login with token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponseDTO'
+
+  /api/v1/auth/change-password:
+    put:
+      summary: Change user password
+      tags:
+        - Authentication
+      requestBody:
+        description: Password change request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+        '404':
+          description: User account not found
+
+  /api/v1/auth/delete-account:
+    delete:
+      summary: Delete a user account
+      tags:
+        - Authentication
+      parameters:
+        - name: username
+          in: query
+          description: The username of the user to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Account deleted successfully
+        '403':
+          description: Not authorized to delete this account
+
+  /api/v1/auth/logout:
+    post:
+      summary: Log out a user
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /api/v1/blog/all:
+    get:
+      summary: Get all blog posts
+      tags:
+        - Blog
+      responses:
+        '200':
+          description: List of all posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+  /api/v1/blog/{id}:
+    get:
+      summary: Get a single blog post by ID
+      tags:
+        - Blog
+      parameters:
+        - name: id
+          in: path
+          description: ID of the post to retrieve
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Post not found
+
+  /api/v1/blog/create:
+    post:
+      summary: Create a new blog post
+      tags:
+        - Blog
+      requestBody:
+        description: Blog post to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        '200':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/v1/blog/update/{id}:
+    put:
+      summary: Update an existing blog post
+      tags:
+        - Blog
+      parameters:
+        - name: id
+          in: path

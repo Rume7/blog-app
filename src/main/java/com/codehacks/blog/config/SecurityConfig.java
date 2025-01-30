@@ -24,7 +24,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(corz -> corz.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .headers(headers -> {
                     headers.frameOptions(frame -> frame.deny());
@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/api/v1/**").permitAll()
                         .requestMatchers("/swagger/**",
-                                                       "/swagger-ui/index.html",
+                                                       "/swagger-ui/**",
                                                         "/v3/api-docs/**",
                                                         "/api-docs/**",
                                                         "/api/v1/blog/**",
