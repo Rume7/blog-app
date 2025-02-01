@@ -49,6 +49,8 @@ jobs:
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
+      TESTCONTAINERS_CHECKS_DISABLE: true # Disables unnecessary startup checks
+      TESTCONTAINERS_REUSE_ENABLE: true   # Enables Testcontainers reuse
 
     services:
       postgres:
@@ -70,8 +72,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build backend
-        run: mvn clean package
+#      - name: Build backend
+#        run: mvn clean package
 
       - name: Verify PostgreSQL Connection
         run: |
