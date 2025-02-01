@@ -73,6 +73,14 @@ jobs:
       - name: Build backend
         run: mvn clean package
 
+      - name: Verify PostgreSQL Connection
+        run: |
+            sudo apt-get install -y postgresql-client
+            PGPASSWORD=test psql -h localhost -U test -d blog_test_db -c "SELECT version();"
+
+      - name: Build and Test
+        run: mvn clean package
+
 #      - name: SonarQube Scan
 #        env:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
