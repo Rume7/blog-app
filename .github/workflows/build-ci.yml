@@ -48,6 +48,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: blog_test_db
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code
