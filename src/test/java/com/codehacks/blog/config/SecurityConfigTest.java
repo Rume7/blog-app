@@ -46,7 +46,8 @@ class SecurityConfigTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")
             .withDatabaseName("blog_test_db")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            .withStartupTimeoutSeconds(120);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

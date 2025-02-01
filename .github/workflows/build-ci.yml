@@ -45,7 +45,11 @@ jobs:
           category: "/language:${{matrix.language}}"
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    container:
+      image: maven:3.8.6-openjdk-17
+      options: --memory=4g
+
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
@@ -72,8 +76,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-#      - name: Build backend
-#        run: mvn clean package
+      - name: Build backend
+        run: mvn clean package
+
+      - name: Check Docker Info
+        run: docker info
 
       - name: Verify PostgreSQL Connection
         run: |
