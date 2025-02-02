@@ -18,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -32,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@TestPropertySource(locations = "classpath:application-test.properties")
 class SecurityConfigTest {
 
     @TestConfiguration
@@ -47,13 +49,20 @@ class SecurityConfigTest {
             .withDatabaseName("blog_test_db")
             .withUsername("test")
             .withPassword("test")
-            .withStartupTimeoutSeconds(120);
+            .withStartupTimeoutSeconds(180);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        boolean isCiEnvironment = Boolean.parseBoolean(System.getenv("CI")); // More reliable check
+        String dbUrl = isCiEnvironment
+                ? "jdbc:postgresql://localhost:5432/blog_test_db"  // Use GitHub Actions service
+                : postgres.getJdbcUrl();                    // Use Testcontainers locally
+
+        registry.add("spring.datasource.url", () -> dbUrl);
+        registry.add("spring.datasource.username", () -> "test");
+        registry.add("spring.datasource.password", () -> "test");
+
+        System.out.println("⚡ Using Database URL: " + dbUrl);
     }
 
     @Autowired
@@ -69,7 +78,7 @@ class SecurityConfigTest {
 
     @BeforeEach
     void setUp() {
-        userRepository.deleteAll();
+        userRepository.deleteAllInBatch();
 
         User testUser = new User();
         testUser.setUsername("testUser");
@@ -84,6 +93,9 @@ class SecurityConfigTest {
         adminUser.setPassword(passwordEncoder.encode("adminPassword"));
         adminUser.setRole(Role.ADMIN);
         userRepository.save(adminUser);
+
+        assert userRepository.findByUsername("testUser").isPresent() : "Test user not found!";
+        assert userRepository.findByUsername("admin").isPresent() : "Admin user not found!";
     }
 
     @Test
@@ -120,7 +132,8 @@ class SecurityConfigTest {
                         .header("Origin", "http://localhost:4200")
                         .header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"))
+                .andExpect(header().exists("Access-Control-Allow-Methods"));
     }
 
     @Test

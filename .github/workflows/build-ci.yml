@@ -17,7 +17,6 @@ jobs:
     permissions:
       # required for all workflows
       security-events: write
-
       # required to fetch internal or private CodeQL packs
       packages: read
 
@@ -46,15 +45,15 @@ jobs:
 
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: maven:3.9.6-eclipse-temurin-17
-      options: --memory=4g
+    strategy:
+      fail-fast: false
 
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
       TESTCONTAINERS_CHECKS_DISABLE: true # Disables unnecessary startup checks
       TESTCONTAINERS_REUSE_ENABLE: true   # Enables Testcontainers reuse
+      SPRING_PROFILES_ACTIVE: test
 
     services:
       postgres:
@@ -76,8 +75,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build backend
-        run: mvn clean package
+      - name: Check Docker Version
+        run: docker --version
+
+      - name: Set Up Buildx (Improves Caching)
+        uses: docker/setup-buildx-action@v2
 
       - name: Check Docker Info
         run: docker info
@@ -85,12 +87,19 @@ jobs:
       - name: Verify PostgreSQL Connection
         run: |
             sudo apt-get install -y postgresql-client
-            PGPASSWORD=test psql -h localhost -U test -d blog_test_db -c "SELECT version();"
+            for i in {1..10}; do
+              if PGPASSWORD=test psql -h localhost -U test -d blog_test_db -c "SELECT version();" > /dev/null 2>&1; then
+                echo "✅ PostgreSQL is ready!"
+                break
+              fi
+              echo "⏳ Waiting for PostgreSQL to be ready... ($i/10)"
+              sleep 5
+            done
 
       - name: Build and Test
-        run: mvn clean package -Dspring.testcontainers.reuse.enable=true
+        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true
 
-      #      - name: SonarQube Scan
+#      - name: SonarQube Scan
 #        env:
 #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 #        run: mvn sonar:sonar \
@@ -99,5 +108,6 @@ jobs:
 #          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t blog-app:${{ github.sha }} .
+        if: success()
+        run: docker build --cache-from=blog-app:latest -t blog-app:${{ github.sha }} .
       
