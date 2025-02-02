@@ -96,8 +96,8 @@ jobs:
               sleep 5
             done
 
-      - name: Build and Test
-        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true
+      - name: Build and Test with Single Thread
+        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true -DforkCount=1
 
 #      - name: SonarQube Scan
 #        env:
