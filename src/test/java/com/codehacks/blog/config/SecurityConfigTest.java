@@ -103,7 +103,7 @@ class SecurityConfigTest {
     @Test
     @WithMockUser(username = "testUser", roles = "USER")
     void givenUserWithRoleUser_whenAccessRestrictedEndpoint_thenForbidden() throws Exception {
-        mockMvc.perform(get(AUTH_PATH + "/delete-account")
+        mockMvc.perform(delete(AUTH_PATH + "/delete-account")
                         .with(csrf().asHeader())
                         .with(user("testUser").roles("USER")))
                 .andExpect(status().isForbidden());
