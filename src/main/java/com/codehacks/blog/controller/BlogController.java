@@ -47,7 +47,7 @@ public class BlogController {
 
     @PutMapping(value = "/update/{id}", produces = "application/json")
     public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id, @Valid @RequestBody Post post) {
-        log.info("Received Post: {}", post);
+        log.info("Updated Post: {}", post);
         Post updatedPost = blogService.updatePost(post, id);
         if (updatedPost == null) {
             return ResponseEntity.ok(ApiResponse.error(Constants.POST_NOT_FOUND + id));

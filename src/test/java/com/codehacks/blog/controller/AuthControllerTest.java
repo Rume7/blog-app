@@ -113,18 +113,23 @@ class AuthControllerTest {
 
     @ParameterizedTest
     @MethodSource("provideRolesAndExpectedStatusForUsers")
-    void changePasswordWithDifferentRoles_Success(Role role, HttpStatus expectedStatus) throws Exception {
+    void changePasswordWithDifferentRoles(Role role, HttpStatus expectedStatus) throws Exception {
         PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPassword123", "newPassword&12");
 
-        doNothing().when(authService).changePassword(request.username(), request.currentPassword(), request.newPassword());
-
         ResultActions resultActions = mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
-                        .with(user("testUser").roles(role.name().replace("ROLE_", "")))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)));
+                .with(user("testUser").roles(role.name()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andDo(print());
 
         if (expectedStatus == HttpStatus.OK) {
-            resultActions.andExpect(status().isOk()).andDo(print());
+            resultActions.andExpect(status().isOk())
+                    .andExpect(content().string("Password changed successfully"));
+            verify(authService).changePassword(request.username(), request.currentPassword(), request.newPassword());
+        } else {
+            resultActions.andExpect(status().isForbidden())
+                    .andExpect(content().string("Only SUBSCRIBER and ADMIN roles can change passwords"));
+            verify(authService, never()).changePassword(anyString(), anyString(), anyString());
         }
     }
 
@@ -133,11 +138,44 @@ class AuthControllerTest {
     void changePassword_withUnauthorizedRole_shouldBeForbidden() throws Exception {
         PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPass123", "newPassword&12");
 
-        // When & Then
         mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Only SUBSCRIBER and ADMIN roles can change passwords"))
+                .andDo(print());
+
+        verify(authService, never()).changePassword(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void changePassword_withUserRole_shouldBeForbidden() throws Exception {
+        PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPass123", "newPassword&12");
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Only SUBSCRIBER and ADMIN roles can change passwords"))
+                .andDo(print());
+
+        verify(authService, never()).changePassword(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = {"SUBSCRIBER"})
+    void changePassword_withSubscriberRole_shouldSucceed() throws Exception {
+        PasswordChangeRequest request = new PasswordChangeRequest("testUser", "oldPass123", "newPassword&12");
+
+        mockMvc.perform(put(Constants.AUTH_PATH + "/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Password changed successfully"))
+                .andDo(print());
+
+        verify(authService).changePassword(request.username(), request.currentPassword(), request.newPassword());
     }
 
     @Test
@@ -182,7 +220,9 @@ class AuthControllerTest {
         mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("USER role is not authorized to change roles"))
+                .andDo(print());
 
         verify(authService, never()).changeUserRole(anyString(), any(Role.class));
     }
@@ -194,7 +234,9 @@ class AuthControllerTest {
         mockMvc.perform(put(Constants.AUTH_PATH + "/change-role")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("User not authenticated"))
+                .andDo(print());
 
         verify(authService, never()).changeUserRole(anyString(), any(Role.class));
     }
@@ -235,10 +277,12 @@ class AuthControllerTest {
         String username = "testUser";
         UserDetails userDetails = createUserDetails(username, role);
 
-        when(authService.canUserDeleteAccount(username, userDetails))
-                .thenReturn(role == Role.ADMIN || (role == Role.SUBSCRIBER && username.equals(userDetails.getUsername())));
-
-        doThrow(new UserAccountException("User account not found")).when(authService).deleteUserAccount(username);
+        // Only set up mocks for ADMIN and SUBSCRIBER roles
+        if (role != Role.USER) {
+            when(authService.canUserDeleteAccount(username, userDetails))
+                    .thenReturn(role == Role.ADMIN || (role == Role.SUBSCRIBER && username.equals(userDetails.getUsername())));
+            doThrow(new UserAccountException("User account not found")).when(authService).deleteUserAccount(username);
+        }
 
         ResultActions resultActions = mockMvc.perform(delete(Constants.AUTH_PATH + "/delete-account")
                         .with(user(userDetails))
@@ -246,20 +290,23 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print());
 
-        if (expectedStatus == HttpStatus.BAD_REQUEST) {
+        if (role == Role.USER) {
+            resultActions.andExpect(status().isForbidden())
+                    .andExpect(content().string("Not authorized to delete accounts"));
+            verify(authService, never()).deleteUserAccount(username);
+            verify(authService, never()).canUserDeleteAccount(any(), any());
+        } else if (expectedStatus == HttpStatus.BAD_REQUEST) {
             resultActions.andExpect(status().isBadRequest());
             verify(authService, times(1)).deleteUserAccount(username);
-        } else {
-            resultActions.andExpect(status().isForbidden());
-            verify(authService, never()).deleteUserAccount(username);
+            verify(authService).canUserDeleteAccount(username, userDetails);
         }
     }
 
     private static Stream<Arguments> provideRolesAndExpectedStatusForDeleteUserNotFound() {
         return Stream.of(
-                Arguments.of(Role.USER, HttpStatus.FORBIDDEN),
-                Arguments.of(Role.SUBSCRIBER, HttpStatus.BAD_REQUEST),
-                Arguments.of(Role.ADMIN, HttpStatus.BAD_REQUEST)
+                Arguments.of(Role.USER, HttpStatus.FORBIDDEN),          // USER role is always forbidden
+                Arguments.of(Role.SUBSCRIBER, HttpStatus.BAD_REQUEST),  // SUBSCRIBER gets BAD_REQUEST when account not found
+                Arguments.of(Role.ADMIN, HttpStatus.BAD_REQUEST)        // ADMIN gets BAD_REQUEST when account not found
         );
     }
 
@@ -273,24 +320,31 @@ class AuthControllerTest {
     void testDeleteAccountWithDifferentRolesAndUsername(Role role, String username, String targetUsername, HttpStatus expectedStatus) throws Exception {
         UserDetails userDetails = createUserDetails(username, role);
 
-        when(authService.canUserDeleteAccount(targetUsername, userDetails))
-                .thenReturn(role == Role.ADMIN || (role == Role.SUBSCRIBER && username.equals(targetUsername)));
+        // Only set up the mock for ADMIN and SUBSCRIBER roles
+        if (role != Role.USER) {
+            when(authService.canUserDeleteAccount(targetUsername, userDetails))
+                    .thenReturn(role == Role.ADMIN || (role == Role.SUBSCRIBER && username.equals(targetUsername)));
+        }
 
         ResultActions resultActions = mockMvc.perform(delete(Constants.AUTH_PATH + "/delete-account")
                         .with(user(userDetails))
                         .param("username", targetUsername)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
+                        .andDo(print());
 
         if (expectedStatus == HttpStatus.NO_CONTENT) {
             resultActions.andExpect(status().isNoContent());
             verify(authService).deleteUserAccount(targetUsername);
+            verify(authService).canUserDeleteAccount(targetUsername, userDetails);
         } else {
             resultActions.andExpect(status().isForbidden());
             verify(authService, never()).deleteUserAccount(targetUsername);
-        }
-        if (role != Role.USER) {
-            verify(authService).canUserDeleteAccount(targetUsername, userDetails);
+            // Only verify canUserDeleteAccount for SUBSCRIBER trying to delete other accounts
+            if (role == Role.SUBSCRIBER && !username.equals(targetUsername)) {
+                verify(authService).canUserDeleteAccount(targetUsername, userDetails);
+            } else if (role == Role.USER) {
+                verify(authService, never()).canUserDeleteAccount(any(), any());
+            }
         }
     }
 
