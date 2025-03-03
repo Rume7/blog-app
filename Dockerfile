@@ -1,5 +1,6 @@
 # Use a specific version of the OpenJDK image
-FROM openjdk:17-jdk-slim
+FROM openjdk:17-alpine
+RUN apk add --no-cache curl
 
 # Set the working directory
 WORKDIR /app

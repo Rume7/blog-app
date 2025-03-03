@@ -43,11 +43,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: BlogDB
+    env_file:
+      - .env
     networks:
       - blog-network
     ports:
       - "8080:8080"
+    volumes:
+      - .env:/app/.env
     restart: always
+    command: ["java", "-jar", "/app.jar"]
 
 networks:
   blog-network:
