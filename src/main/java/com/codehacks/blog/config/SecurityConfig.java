@@ -41,12 +41,10 @@ public class SecurityConfig {
                                                         "/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/auth/change-password").hasAnyRole(
-                                                                        Role.USER.name(),
                                                                         Role.SUBSCRIBER.name(),
                                                                         Role.ADMIN.name())
                         .requestMatchers("/api/v1/auth/delete-account",
-                                                        "/api/v1/auth/change-role").hasAnyRole(Role.ADMIN.name(),
-                                                                                                Role.SUBSCRIBER.name())
+                                                        "/api/v1/auth/change-role").hasAnyRole(Role.ADMIN.name())
                         .anyRequest().authenticated())
                 .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
