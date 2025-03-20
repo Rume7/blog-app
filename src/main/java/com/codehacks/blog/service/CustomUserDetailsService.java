@@ -32,5 +32,19 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.isEnabled()
         );
     }
+
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return new CustomUserDetails(
+                user.getUsername(),
+                user.getPassword(),
+                user.getEmail(),
+                user.getRole(),
+                Collections.singleton(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())),
+                user.isEnabled()
+        );
+    }
+
 }
 

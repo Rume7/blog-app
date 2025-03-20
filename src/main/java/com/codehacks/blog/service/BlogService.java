@@ -1,5 +1,6 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.dto.BlogPreviewDTO;
 import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.Post;
@@ -22,4 +23,6 @@ public interface BlogService {
     Post updatePost(final Post post, Long blogId);
 
     Boolean deletePost(Long blogId) throws InvalidPostException;
+
+    List<BlogPreviewDTO> getBlogPreviews();
 }

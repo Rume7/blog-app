@@ -1,5 +1,8 @@
 package com.codehacks.blog.service;
 
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.codehacks.blog.dto.UserDTO;
 import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.mapper.UserMapper;
@@ -9,25 +12,32 @@ import com.codehacks.blog.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
+
+    @Mock
+    private TokenService tokenService;
 
     @Mock
     private UserRepository userRepository;
@@ -58,18 +68,21 @@ class AuthServiceTest {
     @Test
     void testAuthenticateSuccess() {
         // Given
-        String password = "password";
+        String rawPassword = "password";
 
+        user.setPassword(new BCryptPasswordEncoder().encode(rawPassword));
+
+        when(tokenService.hasExistingToken(user.getEmail())).thenReturn(true);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(user.getEmail())).thenReturn("testToken");
+        when(tokenService.getToken(user.getEmail())).thenReturn("testToken");
 
         // When
-        String result = authService.authenticate("user@example.com", password);
+        String result = authService.authenticate("user@example.com", rawPassword);
 
         // Then
         assertEquals("testToken", result);
         verify(userRepository, times(1)).findByEmail("user@example.com");
-        verify(jwtUtil, times(1)).generateToken(user.getEmail());
+        verify(tokenService, times(1)).getToken(user.getEmail());
     }
 
     @Test
@@ -95,13 +108,16 @@ class AuthServiceTest {
     @Test
     void authenticate_whenValidCredentials_thenReturnToken() {
         // Given
-        String password = "password";
+        String rawPassword = "password";
 
+        user.setPassword(new BCryptPasswordEncoder().encode(rawPassword));
+
+        when(tokenService.hasExistingToken(user.getEmail())).thenReturn(true);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        when(jwtUtil.generateToken(user.getEmail())).thenReturn("validJwtToken");
+        when(tokenService.getToken(user.getEmail())).thenReturn("validJwtToken");
 
         // When
-        String token = authService.authenticate("user@example.com", password);
+        String token = authService.authenticate("user@example.com", rawPassword);
 
         // Then
         assertEquals("validJwtToken", token);

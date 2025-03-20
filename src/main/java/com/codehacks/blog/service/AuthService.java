@@ -6,7 +6,6 @@ import com.codehacks.blog.mapper.UserMapper;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
-import com.codehacks.blog.util.JwtUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +20,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final JwtUtil jwtUtil;
+    private final TokenService tokenService;
     private final AdminService adminService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -33,14 +32,18 @@ public class AuthService {
             throw new UserAccountException("Invalid password");
         }
 
-        return jwtUtil.generateToken(user.getEmail());
+        if (tokenService.hasExistingToken(email)) {
+            return tokenService.getToken(email);
+        }
+
+        return tokenService.generateToken(user);
     }
 
     public UserDTO registerUser(User user) {
         if (checkIfUsernameExists(user)) {
             throw new UserAccountException(user.getUsername() + " already exist");
         }
-        if (checkIfEmailExists(user)) {
+        if (checkIfEmailExists(user.getEmail())) {
             throw new UserAccountException(user.getEmail() + " already exist");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -53,9 +56,13 @@ public class AuthService {
         return userFound.isPresent();
     }
 
-    private boolean checkIfEmailExists(User user) {
-        Optional<User> userFound = userRepository.findByEmail(user.getEmail());
+    private boolean checkIfEmailExists(String userEmail) {
+        Optional<User> userFound = userRepository.findByEmail(userEmail);
         return userFound.isPresent();
+    }
+
+    public void logout(String email) {
+        tokenService.invalidateToken(email);
     }
 
     public void changePassword(String username, String currentPassword, String newPassword) {

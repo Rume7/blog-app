@@ -1,5 +1,6 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.dto.BlogPreviewDTO;
 import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.exception.PostNotFoundException;
 import com.codehacks.blog.model.Author;
@@ -11,10 +12,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -88,5 +87,30 @@ public class BlogServiceImpl implements BlogService {
             return true;
         }
         throw new PostNotFoundException("Post not found with id: " + blogId);
+    }
+
+    @Override
+    public List<BlogPreviewDTO> getBlogPreviews() {
+        List<Post> blogs = blogRepository.findAll();
+        return blogs.stream()
+                .map(this::convertToPreview)
+                .collect(Collectors.toList());
+    }
+
+    private BlogPreviewDTO convertToPreview(Post blog) {
+        BlogPreviewDTO preview = new BlogPreviewDTO();
+        preview.setId(blog.getId());
+        preview.setTitle(blog.getTitle());
+        preview.setAuthor(String.join(" ", blog.getAuthor().getFirstName(), blog.getAuthor().getLastName()));
+        preview.setCreatedAt(blog.getCreatedAt());
+
+        // Get first two paragraphs
+        String[] paragraphs = blog.getContent().split("\n\n");
+        String previewContent = Arrays.stream(paragraphs)
+                .limit(2)
+                .collect(Collectors.joining("\n\n"));
+        preview.setPreviewContent(previewContent);
+
+        return preview;
     }
 }
