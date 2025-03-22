@@ -26,14 +26,14 @@ public class MailConfig {
     @Bean
     public JavaMailSender javaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost(mailHost);
-        mailSender.setPort(mailPort);
-        mailSender.setUsername(mailUsername);
+        mailSender.setHost(getMailHost());
+        mailSender.setPort(getMailPort());
+        mailSender.setUsername(getMailUsername());
 
         if (mailPassword == null || mailPassword.isEmpty()) {
             throw new IllegalStateException("Mail password is not set! Please configure 'spring.mail.password'.");
         }
-        mailSender.setPassword(mailPassword);
+        mailSender.setPassword(getMailPassword());
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
@@ -43,5 +43,21 @@ public class MailConfig {
         props.put("mail.smtp.ssl.trust", "smtp.gmail.com"); // Avoid SSL handshake issues
 
         return mailSender;
+    }
+
+    private String getMailHost() {
+        return mailHost;
+    }
+
+    private int getMailPort() {
+        return mailPort;
+    }
+
+    private String getMailPassword() {
+        return mailPassword;
+    }
+
+    private String getMailUsername() {
+        return mailUsername;
     }
 }
