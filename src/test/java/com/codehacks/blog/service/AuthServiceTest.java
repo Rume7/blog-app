@@ -49,6 +49,9 @@ class AuthServiceTest {
     private UserDetails userDetails;
 
     @Mock
+    private AdminService adminService;
+
+    @Mock
     private UserMapper userMapper;
 
     private User user;
@@ -158,6 +161,7 @@ class AuthServiceTest {
         assertNotNull(userDTO);
         assertEquals(user.getUsername(), userDTO.getUsername());
         assertEquals(user.getEmail(), userDTO.getEmail());
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
@@ -168,6 +172,19 @@ class AuthServiceTest {
         // When & Then
         assertUserAccountException(() ->
                 authService.registerUser(user), user.getUsername() + " already exist");
+    }
+
+    @Test
+    void registerUser_EmailExists_ThrowsException() {
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        assertThrows(UserAccountException.class, () -> authService.registerUser(user));
+    }
+
+    @Test
+    void logout_Success() {
+        authService.logout(user.getEmail());
+        verify(tokenService).invalidateToken(user.getEmail());
     }
 
     @Test
@@ -198,7 +215,7 @@ class AuthServiceTest {
 
         // Then
         assertUserAccountException(() -> authService.changePassword(
-                        user.getUsername(), "anyPassword", "newPassword"), "User not found");
+                user.getUsername(), "anyPassword", "newPassword"), "User not found");
     }
 
     @Test
@@ -261,6 +278,15 @@ class AuthServiceTest {
     }
 
     @Test
+    void changeUserRole_UserNotFound_ThrowsException() {
+        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
+
+        assertThrows(UserAccountException.class, () ->
+                authService.changeUserRole(user.getUsername(), Role.ADMIN)
+        );
+    }
+
+    @Test
     void deleteUserAccount_whenUserExists_thenDeleteAccount() {
         // Given
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
@@ -318,5 +344,17 @@ class AuthServiceTest {
 
         // Then
         assertFalse(canDelete);
+    }
+
+    @Test
+    void logAdminAccess_Success() {
+        authService.logAdminAccess(user.getEmail(), "127.0.0.1");
+        verify(adminService).logAdminAccess(user.getEmail(), "127.0.0.1");
+    }
+
+    @Test
+    void reportUnauthorizedAdminAccess_Success() {
+        authService.reportUnauthorizedAdminAccess(user.getEmail(), "127.0.0.1");
+        verify(adminService).reportUnauthorizedAdminAccess(user.getEmail(), "127.0.0.1");
     }
 }

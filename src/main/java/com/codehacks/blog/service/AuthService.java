@@ -7,7 +7,9 @@ import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -78,10 +80,19 @@ public class AuthService {
     }
 
     public User changeUserRole(String username, Role role) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserAccountException(username + " not found"));
-        user.setRole(role);
-        return userRepository.save(user);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
+
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UserAccountException(username + " not found"));
+
+            user.setRole(role);
+            return userRepository.save(user);
+        }
+
+        throw new UserAccountException("FORBIDDEN: You are not authorized");
     }
 
     public void deleteUserAccount(String username) {

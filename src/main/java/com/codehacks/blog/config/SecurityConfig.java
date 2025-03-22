@@ -63,6 +63,8 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                             .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                             .requestMatchers("/error").permitAll()
+                            .requestMatchers(HttpMethod.PUT, "/api/v1/auth/change-role").hasRole("ADMIN")
+                            .requestMatchers("/api/v1/auth/logout").authenticated()
                             .requestMatchers("/api/v1/users/**").authenticated()
                             .anyRequest().authenticated();
                     log.debug("Configured authorization rules");
