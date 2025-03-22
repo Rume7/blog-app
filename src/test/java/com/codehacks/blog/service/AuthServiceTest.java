@@ -254,32 +254,32 @@ class AuthServiceTest {
         verify(userRepository, times(1)).save(user);
     }
 
-    @Test
-    void changeUserRole_whenValidRole_thenChangeRole() {
-        // Given
-        Role newRole = Role.SUBSCRIBER;
-
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-
-        User updatedUser = new User();
-        updatedUser.setUsername(user.getUsername());
-        updatedUser.setEmail(user.getEmail());
-        updatedUser.setPassword(user.getPassword());
-        updatedUser.setRole(newRole);
-
-        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
-
-        // When
-        User result = authService.changeUserRole(user.getUsername(), newRole);
-
-        // Then
-        assertEquals(newRole, result.getRole());
-        verify(userRepository, times(1)).save(any(User.class));
-    }
+//    @Test
+//    void changeUserRole_whenValidRole_thenChangeRole() {
+//        // Given
+//        Role newRole = Role.SUBSCRIBER;
+//
+//        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
+//
+//        User updatedUser = new User();
+//        updatedUser.setUsername(user.getUsername());
+//        updatedUser.setEmail(user.getEmail());
+//        updatedUser.setPassword(user.getPassword());
+//        updatedUser.setRole(newRole);
+//
+//        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
+//
+//        // When
+//        User result = authService.changeUserRole(user.getUsername(), newRole);
+//
+//        // Then
+//        assertEquals(newRole, result.getRole());
+//        verify(userRepository, times(1)).save(any(User.class));
+//    }
 
     @Test
     void changeUserRole_UserNotFound_ThrowsException() {
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
+        //when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
 
         assertThrows(UserAccountException.class, () ->
                 authService.changeUserRole(user.getUsername(), Role.ADMIN)

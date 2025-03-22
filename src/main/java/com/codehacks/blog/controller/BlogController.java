@@ -1,6 +1,7 @@
 package com.codehacks.blog.controller;
 
 import com.codehacks.blog.dto.ApiResponse;
+import com.codehacks.blog.dto.BlogPreviewDTO;
 import com.codehacks.blog.exception.InvalidPostException;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.service.BlogService;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -69,5 +71,11 @@ public class BlogController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/previews")
+    public ResponseEntity<List<BlogPreviewDTO>> getBlogPreviews() {
+        List<BlogPreviewDTO> previews = blogService.getBlogPreviews();
+        return ResponseEntity.ok(previews);
     }
 }
