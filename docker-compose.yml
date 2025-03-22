@@ -50,6 +50,8 @@ services:
       - blog-network
     ports:
       - "8080:8080"
+    volumes:
+      - .env:/app/.env
     restart: always
     command: ["java", "-jar", "/app.jar"]
 
