@@ -1,45 +1,63 @@
+server:
+  port: ${PORT:8080}
+
+services:
+  app:
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - JWT_SECRET=${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+
 spring:
   application:
     name: blog-app
 
   datasource:
-    url: jdbc:postgresql://blog-app-postgres-1:5432/BlogDB
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:BlogDB}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
+        format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  redis:
-    host: blog-redis
-    port: 6379
-    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
-server:
-  port: 8080
-  address: 0.0.0.0
-  servlet:
-    context-path: /
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
-logging:
-  level:
-    com.codehacks.blog: INFO
+  web:
+    cors:
+      allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: Authorization,Content-Type,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers
+      exposed-headers: Authorization
+      allow-credentials: true
+      max-age: 3600
+
+  security:
+    filter:
+      order: 10
 
 jwt:
-  expiration-time: 3600000
-
-rate:
-  limit:
-    requests: 100
-    time-window: 2
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION:43200000}
 
 springdoc:
   api-docs:
@@ -49,21 +67,16 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
 
-mail:
-  host: mail.example.com
-  port: 587
-  username: ${MAIL_USERNAME}
-  password: ${MAIL_PASSWORD}
-  properties:
-    mail:
-      smtp:
-        auth: true
-        starttls:
-          enable: true
-
 security:
   team: ${SECURITY_EMAIL}
   email: ${TEAM_EMAIL}
   known-ips:
     - 192.168.1.100
     - 192.168.1.101
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
