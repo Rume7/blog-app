@@ -1,26 +1,28 @@
 package com.codehacks.blog.controller;
 
-import com.codehacks.blog.config.RateLimit;
+import com.codehacks.blog.dto.ApiResponse;
+import com.codehacks.blog.dto.AuthResponse;
 import com.codehacks.blog.dto.LoginRequest;
-import com.codehacks.blog.dto.LoginResponseDTO;
 import com.codehacks.blog.dto.PasswordChangeRequest;
 import com.codehacks.blog.dto.RegisterRequest;
 import com.codehacks.blog.dto.RoleChangeRequest;
 import com.codehacks.blog.dto.UserDTO;
-import com.codehacks.blog.exception.TokenExpirationException;
-import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.model.CustomUserDetails;
+import com.codehacks.blog.model.User;
 import com.codehacks.blog.service.AuthService;
-import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,100 +40,100 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(Constants.AUTH_PATH)
 @Validated
 @Tag(name = "Authentication", description = "Authentication management API")
+@Slf4j
 public class AuthController {
 
+    private final AuthenticationManager authenticationManager;
     private final AuthService authService;
-    private final TokenService tokenService;
 
     @Autowired
-    public AuthController(AuthService authService, TokenService tokenService) {
+    public AuthController(AuthService authService, AuthenticationManager authenticationManager) {
         this.authService = authService;
-        this.tokenService = tokenService;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping(value = "/register", produces = "application/json")
     @Operation(summary = "Register new user")
     @PreAuthorize("permitAll()")
-    @RateLimit(maxRequests = 50, timeWindowMinutes = 5)
-    public ResponseEntity<UserDTO> register(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<ApiResponse<UserDTO>> register(@RequestBody @Valid RegisterRequest request) {
         UserDTO savedUser = authService.registerUser(request.toUser());
-        return ResponseEntity.ok(savedUser);
+        log.info("User registered with email: {}", savedUser.getEmail());
+        return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", savedUser));
     }
 
     @PostMapping(value = "/login", produces = "application/json")
     @PreAuthorize("permitAll()")
-    @RateLimit(maxRequests = 50, timeWindowMinutes = 5)
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid LoginRequest request) throws TokenExpirationException {
-        String token;
-        if (!tokenService.hasExistingToken(request.email())) {
-            token = authService.authenticate(request.email(), request.password());
-            tokenService.storeToken(request.email(), token);
-        } else {
-            String existingToken = tokenService.getExistingToken(request.email());
-            boolean validToken = tokenService.isTokenValid(request.password(), existingToken);
-            if (validToken) {
-                token = existingToken;
-            } else {
-                token = authService.authenticate(request.email(), request.password());
-                tokenService.storeToken(request.email(), token);
-            }
-        }
-        LoginResponseDTO loginResponse = new LoginResponseDTO(token, "Login successful");
-        return ResponseEntity.ok(loginResponse);
+    public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        // Perform authentication using AuthenticationManager
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        String generateToken = authService.authenticate(loginRequest.email(), loginRequest.password());
+        log.info("User logged in with email: {}", loginRequest.email());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + generateToken);
+
+        // Include token in both header and body.
+        AuthResponse authResponse = new AuthResponse(generateToken, loginRequest.username(), loginRequest.email());
+        return ResponseEntity.ok().headers(headers)
+                .body(new ApiResponse<>(true, "Login successful", authResponse));
     }
 
     @PutMapping(value = "/change-password", produces = "application/json")
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
-    @RateLimit(maxRequests = 50, timeWindowMinutes = 5)
-    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
-        try {
-            authService.changePassword(request.username(), request.currentPassword(), request.newPassword());
-            return ResponseEntity.ok("Password changed successfully");
-        } catch (UserAccountException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<String>> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
+        authService.changePassword(request.username(), request.currentPassword(), request.newPassword());
+        log.info("Password changed for user: {}", request.username());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password changed successfully", null));
     }
 
     @PutMapping(value = "/change-role", produces = "application/json")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> changeUserRole(@Valid @RequestBody RoleChangeRequest request) {
-        try {
-            authService.changeUserRole(request.username(), request.userRole());
-            return ResponseEntity.ok("Role changed successfully");
-        } catch (UserAccountException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<String>> changeUserRole(@Valid @RequestBody RoleChangeRequest request) {
+        User changeUserRole = authService.changeUserRole(request.username(), request.userRole());
+        log.info("User role changed for: {}", changeUserRole.getUsername());
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Role changed successfully", changeUserRole.getRole().toString()));
     }
 
     @DeleteMapping(value = "/delete-account", produces = "application/json")
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
-    public ResponseEntity<String> deleteAccount(@RequestParam String username, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ApiResponse<String>> deleteAccount(@RequestParam String username,
+                                                @AuthenticationPrincipal UserDetails userDetails) {
         if (!authService.canUserDeleteAccount(username, userDetails)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized to delete this account");
+            log.warn("Unauthorized delete attempt for account: {}", username);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Not authorized to delete this account", null));
         }
         authService.deleteUserAccount(username);
+        log.info("Account deleted: {}", username);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/logout", produces = "application/json")
+    @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> logout(@AuthenticationPrincipal UserDetails userDetails) {
-        tokenService.invalidateToken(userDetails.getUsername());
+        authService.logout(userDetails.getUsername());
         return ResponseEntity.ok("Logged out successfully");
     }
 
     @PostMapping("/admin-only")
     @PreAuthorize("isAuthenticated()")
-    @RateLimit(maxRequests = 50, timeWindowMinutes = 5)
-    public ResponseEntity<String> adminEndpoint(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> adminEndpoint(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not authenticated");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "User not authenticated", null));
         }
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String ipAddress = request.getRemoteAddr();
         authService.logAdminAccess(userDetails.getUsername(), ipAddress);
-        return ResponseEntity.ok("Admin access granted");
+        log.info("Admin access granted for: {}", userDetails.getUsername());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Admin access granted", null));
     }
 }

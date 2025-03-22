@@ -1,51 +1,55 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.exception.TokenExpirationException;
-import com.codehacks.blog.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
+import com.codehacks.blog.model.User;
 
-import java.util.concurrent.TimeUnit;
+public interface TokenService {
 
-@Service
-public class TokenService {
+    /**
+     * Generates a JWT token for the given user
+     * @param user The user to generate token for
+     * @return The generated JWT token
+     */
+    String generateToken(User user);
 
-    private final RedisTemplate<String, String> redisTemplate;
-    private static final String KEY_PREFIX = "token:";
-    private JwtUtil jwtUtil;
+    /**
+     * Validates a JWT token
+     * @param token The token to validate
+     * @return true if token is valid, false otherwise
+     */
+    boolean validateToken(String token);
 
-    @Autowired
-    public TokenService(RedisTemplate<String, String> redisTemplate, JwtUtil jwtUtil) {
-        this.redisTemplate = redisTemplate;
-        this.jwtUtil = jwtUtil;
-    }
+    /**
+     * Gets the user ID from a JWT token
+     * @param token The token to extract user ID from
+     * @return The user ID
+     */
+    Long getUserIdFromToken(String token);
 
-    public boolean hasExistingToken(String username) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(KEY_PREFIX + username));
-    }
+    /**
+     * Extracts the email from the JWT token.
+     *
+     * @param token the JWT token
+     * @return the email claim embedded in the token
+     */
+    String getUserEmailFromToken(String token);
 
-    public String getExistingToken(String username) throws TokenExpirationException {
-        if (hasExistingToken(username)) {
-            return redisTemplate.opsForValue().get(KEY_PREFIX + username);
-        }
-        throw new TokenExpirationException("token is expired");
-    }
+    /**
+     * Invalidates a token (for logout)
+     * @param token The token to invalidate
+     */
+    void invalidateToken(String token);
 
-    public void storeToken(String username, String token) {
-        redisTemplate.opsForValue().set(KEY_PREFIX + username, token,
-                60, TimeUnit.MINUTES);
-    }
+    /**
+     * Check if redis has token associated with email
+     * @param email email for token check
+     * @return boolean True for when token exist.
+     */
+    boolean hasExistingToken(String email);
 
-    public boolean isTokenValid(String username, String token) {
-        if (!jwtUtil.validateToken(username, token)) {
-            return false;
-        }
-        String storedToken = redisTemplate.opsForValue().get(KEY_PREFIX + username);
-        return token.equals(storedToken);
-    }
+    /**
+     * Get token from the user's email
+     * @param email email for getting token value.
+     */
+    String getToken(String email);
 
-    public void invalidateToken(String username) {
-        redisTemplate.delete(KEY_PREFIX + username);
-    }
 }

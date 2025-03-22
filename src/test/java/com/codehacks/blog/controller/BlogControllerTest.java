@@ -6,6 +6,7 @@ import com.codehacks.blog.model.Author;
 import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Post;
 import com.codehacks.blog.model.Role;
+import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.service.BlogService;
 import com.codehacks.blog.service.TokenService;
 import com.codehacks.blog.util.Constants;
@@ -13,6 +14,8 @@ import com.codehacks.blog.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -21,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -34,7 +38,7 @@ import java.util.Set;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,14 +48,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @EnableAspectJAutoProxy
+@ExtendWith(MockitoExtension.class)
 @WebMvcTest(BlogController.class)
-@Import({SecurityConfig.class, BlogService.class})
+@Import({SecurityConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class BlogControllerTest {
 
@@ -61,13 +66,19 @@ class BlogControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TokenService tokenService;
-
-    @MockBean
     private BlogService blogService;
 
     @MockBean
     private JwtUtil jwtUtil;
+
+    @MockBean
+    private TokenService tokenService;
+
+    @MockBean
+    private AuthService authService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -97,7 +108,11 @@ class BlogControllerTest {
                         .content(objectMapper.writeValueAsString(post)))
                 .andDo(print());
 
-        resultActions.andExpect(status().isOk());
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.title").value("Blog Title"))
+                .andExpect(jsonPath("$.data.content").value("This is the content of the post"));
+
         verify(blogService, times(1)).createPost(post);
     }
 
@@ -113,7 +128,8 @@ class BlogControllerTest {
 
         Post newPost = new Post("Title", "This is a post you would like to read");
 
-        when(blogService.createPost(newPost)).thenThrow(new InvalidPostException("Title length is too short"));
+        when(blogService.createPost(any(Post.class)))
+                .thenThrow(new InvalidPostException("Title length is too short"));
 
         ResultActions resultActions = mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .with(user(userDetails))
@@ -122,7 +138,7 @@ class BlogControllerTest {
                 .andDo(print());
 
         resultActions.andExpect(status().isBadRequest());
-        verify(blogService, times(1)).createPost(newPost);
+        verify(blogService, times(1)).createPost(any(Post.class));
     }
 
     @Test
@@ -144,6 +160,7 @@ class BlogControllerTest {
                 .andDo(print());
 
         resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.title").value("Updated Title"))
                 .andExpect(jsonPath("$.data.content").value("Updated content"));
 
@@ -166,6 +183,7 @@ class BlogControllerTest {
                 .andDo(print());
 
         resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(Constants.POST_NOT_FOUND + postId));
     }
 
@@ -302,7 +320,7 @@ class BlogControllerTest {
                         .with(anonymous())  // Explicitly set as anonymous user
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

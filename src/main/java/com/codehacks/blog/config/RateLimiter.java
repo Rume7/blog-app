@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Aspect
 @Component
 public class RateLimiter {
+
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     @Around("@annotation(rateLimit)")
