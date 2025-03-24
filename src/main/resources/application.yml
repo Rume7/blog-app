@@ -12,9 +12,9 @@ spring:
     name: blog-app
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:BlogDB}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -70,9 +70,7 @@ springdoc:
 security:
   team: ${SECURITY_EMAIL}
   email: ${TEAM_EMAIL}
-  known-ips:
-    - 192.168.1.100
-    - 192.168.1.101
+  known_ips: 192.168.1.100, 192.168.1.101
 
 logging:
   level:
