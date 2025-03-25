@@ -1,6 +1,9 @@
 package com.codehacks.blog.util;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -14,7 +17,7 @@ public class JwtUtil {
     public static final String INVALID_OR_EXPIRED_TOKEN_MESSAGE = "Invalid or expired JWT token";
     private final String SECRET_KEY = "your_very_strong_secret_key_of_at_least_256_bits";
 
-    @Value("${jwt.expiration-time}")
+    @Value("${jwt.expiration}")
     private long expirationTime;
 
     public String generateToken(String username) {

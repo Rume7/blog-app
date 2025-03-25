@@ -18,14 +18,14 @@ public class SecurityService {
 
     private final MailConfig mailSender;
 
-    @Value("${security_team}")
+    @Value("${security.team}")
     private String securityEmail;
 
-    @Value("${security_known_ips}")
+    @Value("${security.known_ips}")
     private final Set<String> knownIps;
 
     @Autowired
-    public SecurityService(MailConfig mailSender, @Value("${security_known_ips}") Set<String> knownIps) {
+    public SecurityService(MailConfig mailSender, @Value("${security.known_ips}") Set<String> knownIps) {
         this.mailSender = mailSender;
         this.knownIps = knownIps;
     }

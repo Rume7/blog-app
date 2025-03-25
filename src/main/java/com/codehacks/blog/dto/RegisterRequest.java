@@ -20,7 +20,9 @@ public record RegisterRequest(
 
     @NotBlank(message = "Email is required")
     @Email(message = "Email should be valid")
-    String email
+    String email,
+
+    String role
 ) {
     static BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -29,7 +31,7 @@ public record RegisterRequest(
         user.setUsername(username());
         user.setPassword(passwordEncoder.encode(password()));
         user.setEmail(email());
-        user.setRole(Role.USER);
+        user.setRole(role != null ? Role.valueOf(role.toUpperCase()) : Role.USER);
         user.setEnabled(true);
         return user;
     }

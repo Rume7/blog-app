@@ -1,6 +1,7 @@
 package com.codehacks.blog.config;
 
-import com.codehacks.blog.service.TokenService;
+import com.codehacks.blog.service.CustomUserDetailsService;
+import com.codehacks.blog.service.TokenServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +12,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -25,8 +25,8 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final TokenService tokenService;
-    private final UserDetailsService userDetailsService;
+    private final TokenServiceImpl tokenService;
+    private final CustomUserDetailsService userDetailsService;
 
     private final String[] PUBLIC_PATHS = {"/api/v1/auth/register", "/api/v1/auth/login"};
 

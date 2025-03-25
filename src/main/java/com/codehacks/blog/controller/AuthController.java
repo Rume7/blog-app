@@ -24,6 +24,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -62,25 +63,41 @@ public class AuthController {
     }
 
     @PostMapping(value = "/login", produces = "application/json")
+    @Operation(summary = "Login user")
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        // Perform authentication using AuthenticationManager
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
-        );
+        try {
+            // Perform authentication using AuthenticationManager
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
+            );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String generateToken = authService.authenticate(loginRequest.email(), loginRequest.password());
-        log.info("User logged in with email: {}", loginRequest.email());
+            // Generate token using authService
+            String generateToken = authService.authenticate(loginRequest.email(), loginRequest.password());
+            log.info("User logged in with email: {}", loginRequest.email());
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + generateToken);
+            // Set Authorization header
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", "Bearer " + generateToken);
 
-        // Include token in both header and body.
-        AuthResponse authResponse = new AuthResponse(generateToken, loginRequest.username(), loginRequest.email());
-        return ResponseEntity.ok().headers(headers)
-                .body(new ApiResponse<>(true, "Login successful", authResponse));
+            // Extract authenticated user details
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String username = userDetails.getUsername();
+
+            // Build AuthResponse in both header and body.
+            AuthResponse authResponse = new AuthResponse(generateToken, username, loginRequest.email());
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(new ApiResponse<>(true, "Login successful", authResponse));
+
+        } catch (AuthenticationException ex) {
+            log.error("Login failed for email: {}", loginRequest.email());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Invalid email or password", null));
+        }
     }
 
     @PutMapping(value = "/change-password", produces = "application/json")

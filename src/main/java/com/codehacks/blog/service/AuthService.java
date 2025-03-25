@@ -48,8 +48,16 @@ public class AuthService {
         if (checkIfEmailExists(user.getEmail())) {
             throw new UserAccountException(user.getEmail() + " already exist");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User savedUser = userRepository.save(user);
+
+        User newUser = new User();
+        newUser.setUsername(user.getUsername());
+        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        newUser.setEmail(user.getEmail());
+        newUser.setRole(Role.USER);
+        newUser.setEnabled(true);
+        User savedUser = userRepository.save(newUser);
+
+        tokenService.generateToken(newUser);
         return userMapper.apply(savedUser);
     }
 
