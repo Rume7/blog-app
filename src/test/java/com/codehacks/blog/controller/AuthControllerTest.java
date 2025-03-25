@@ -79,7 +79,7 @@ class AuthControllerTest {
 
     @Test
     void testRegister_Success() throws Exception {
-        RegisterRequest request = new RegisterRequest("testUser", "Test@123", "user@example.com");
+        RegisterRequest request = new RegisterRequest("testUser", "Test@123", "user@example.com", "USER");
         UserDTO responseDTO = new UserDTO("user@example.com", "testUser");
 
         when(authService.registerUser(any())).thenReturn(responseDTO);
@@ -97,7 +97,13 @@ class AuthControllerTest {
     @Test
     void testLogin_Success() throws Exception {
         LoginRequest loginRequest = new LoginRequest("testUser", "user@example.com", "Test@123");
+
         Authentication authentication = mock(Authentication.class);
+        UserDetails userDetails = mock(UserDetails.class);
+
+        when(userDetails.getUsername()).thenReturn("testUser");
+
+        when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
         when(authService.authenticate("user@example.com", "Test@123")).thenReturn("mockToken");
 
@@ -107,7 +113,9 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Login successful"))
-                .andExpect(jsonPath("$.data.token").value("mockToken"));
+                .andExpect(jsonPath("$.data.token").value("mockToken"))
+                .andExpect(jsonPath("$.data.username").value("testUser"))
+                .andExpect(jsonPath("$.data.email").value("user@example.com"));
     }
 
     @Test
