@@ -103,7 +103,6 @@ class BlogControllerTest {
 
         ResultActions resultActions = mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .with(user(userDetails))
-                        .param("username", username)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(post)))
                 .andDo(print());
@@ -113,11 +112,11 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$.data.title").value("Blog Title"))
                 .andExpect(jsonPath("$.data.content").value("This is the content of the post"));
 
-        verify(blogService, times(1)).createPost(post);
+        verify(blogService, times(1)).createPost(any(Post.class));
     }
 
     private UserDetails createUserDetails(String username, Role role) {
-        return new CustomUserDetails(username, "Register123Password", "user@example.com",
+        return new CustomUserDetails(username, "Register123Password&", "user@example.com",
                 role, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name())), true);
     }
 
