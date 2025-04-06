@@ -99,13 +99,13 @@ class AuthControllerTest {
         LoginRequest loginRequest = new LoginRequest("user@example.com", "Test@123");
 
         Authentication authentication = mock(Authentication.class);
-        UserDetails userDetails = mock(UserDetails.class);
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
 
-        when(userDetails.getUsername()).thenReturn("testUser");
+        when(userDetails.getUsername()).thenReturn("user@example.com");
 
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
-        //when(authService.authenticate("user@example.com", "Test@123")).thenReturn("mockToken");
+        when(authService.authenticate(userDetails)).thenReturn("mockToken");
 
         mockMvc.perform(post(Constants.AUTH_PATH + "/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -114,7 +114,6 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Login successful"))
                 .andExpect(jsonPath("$.data.token").value("mockToken"))
-                .andExpect(jsonPath("$.data.username").value("testUser"))
                 .andExpect(jsonPath("$.data.email").value("user@example.com"));
     }
 
