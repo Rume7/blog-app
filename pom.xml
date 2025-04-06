@@ -208,6 +208,7 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <finalName>blog-app-1.0</finalName>
                 </configuration>
             </plugin>
             <plugin>

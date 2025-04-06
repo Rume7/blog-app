@@ -57,7 +57,7 @@ public class AuthController {
     @Operation(summary = "Register new user")
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<UserDTO>> register(@RequestBody @Valid RegisterRequest request) {
-        UserDTO savedUser = authService.registerUser(request.toUser());
+        UserDTO savedUser = authService.registerUser(request.toUser(), request.password());
         log.info("User registered with email: {}", savedUser.getEmail());
         return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", savedUser));
     }
@@ -71,30 +71,27 @@ public class AuthController {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password())
             );
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Generate token using authService
-            String generateToken = authService.authenticate(loginRequest.email(), loginRequest.password());
-            log.info("User logged in with email: {}", loginRequest.email());
+            // Extract authenticated user details
+            CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
+
+            String generateToken = authService.authenticate(customUserDetails);
+            log.info("Token generated successfully for user: {}", customUserDetails.getUsername());
 
             // Set Authorization header
             HttpHeaders headers = new HttpHeaders();
             headers.add("Authorization", "Bearer " + generateToken);
 
-            // Extract authenticated user details
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String username = userDetails.getUsername();
-
             // Build AuthResponse in both header and body.
-            AuthResponse authResponse = new AuthResponse(generateToken, username, loginRequest.email());
+            AuthResponse authResponse = new AuthResponse(generateToken, customUserDetails.getUsername(), loginRequest.email());
 
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(new ApiResponse<>(true, "Login successful", authResponse));
 
         } catch (AuthenticationException ex) {
-            log.error("Login failed for email: {}", loginRequest.email());
+            log.error("Login failed for email: {} - Error: {}", loginRequest.email(), ex.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "Invalid email or password", null));
         }
@@ -120,7 +117,7 @@ public class AuthController {
     @DeleteMapping(value = "/delete-account", produces = "application/json")
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteAccount(@RequestParam String username,
-                                                @AuthenticationPrincipal UserDetails userDetails) {
+                                                             @AuthenticationPrincipal UserDetails userDetails) {
         if (!authService.canUserDeleteAccount(username, userDetails)) {
             log.warn("Unauthorized delete attempt for account: {}", username);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

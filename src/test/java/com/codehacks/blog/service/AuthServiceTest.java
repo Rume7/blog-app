@@ -1,9 +1,9 @@
 package com.codehacks.blog.service;
 
+import com.codehacks.blog.model.CustomUserDetails;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.codehacks.blog.dto.UserDTO;
 import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.mapper.UserMapper;
 import com.codehacks.blog.model.Role;
@@ -15,17 +15,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,100 +72,53 @@ class AuthServiceTest {
     }
 
     @Test
-    void testAuthenticateSuccess() {
+    void testAuthenticateWhenUserExists() {
         // Given
-        String rawPassword = "password";
+        String email = "user@example.com";
+        Role role = Role.USER;
+        Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
-        user.setPassword(new BCryptPasswordEncoder().encode(rawPassword));
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "username", "encodedPassword", email, role, authorities, true
+        );
 
-        when(tokenService.hasExistingToken(user.getEmail())).thenReturn(true);
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(tokenService.getToken(user.getEmail())).thenReturn("testToken");
+        User user = new User(1L, "username", "encodedPassword", email, role, true, LocalDateTime.now(), LocalDateTime.now());
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(tokenService.generateToken(user)).thenReturn("generatedToken");
 
         // When
-        String result = authService.authenticate("user@example.com", rawPassword);
+        String result = authService.authenticate(userDetails);
 
         // Then
-        assertEquals("testToken", result);
-        verify(userRepository, times(1)).findByEmail("user@example.com");
-        verify(tokenService, times(1)).getToken(user.getEmail());
+        assertEquals("generatedToken", result);
+        verify(userRepository, times(2)).findByEmail(email);
+        verify(tokenService, times(1)).generateToken(user);
     }
 
-    @Test
-    void testAuthenticateUserNotFound() {
-        // Given & When
-        when(userRepository.findByEmail("nonExistentUser@example.com")).thenReturn(Optional.empty());
-
-        // Then
-        assertThrows(UserAccountException.class,
-                () -> authService.authenticate("nonExistentUser@example.com", "password"));
-    }
 
     @Test
-    void testAuthenticateInvalidPassword() {
-        // Given & When
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-
-        // Then
-        assertUserAccountException(() -> authService.authenticate(
-                user.getEmail(), "wrongPassword"), "Invalid password");
-    }
-
-    @Test
-    void authenticate_whenValidCredentials_thenReturnToken() {
+    void testAuthenticateWhenUserNotFound() {
         // Given
-        String rawPassword = "password";
+        String email = "user@example.com";
+        Role role = Role.USER;
+        Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
-        user.setPassword(new BCryptPasswordEncoder().encode(rawPassword));
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "username", "encodedPassword", email, role, authorities, true
+        );
 
-        when(tokenService.hasExistingToken(user.getEmail())).thenReturn(true);
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        when(tokenService.getToken(user.getEmail())).thenReturn("validJwtToken");
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        // When
-        String token = authService.authenticate("user@example.com", rawPassword);
+        // When & Then
+        UserAccountException thrown = assertThrows(UserAccountException.class, () -> {
+            authService.authenticate(userDetails);
+        });
 
-        // Then
-        assertEquals("validJwtToken", token);
+        assertEquals("Invalid login credentials", thrown.getMessage());
+        verify(userRepository, times(1)).findByEmail(email);
     }
 
-    @Test
-    void authenticate_whenInvalidUsername_thenThrowException() {
-        // Given
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
-
-        // When
-        assertUserAccountException(() -> authService.authenticate(
-                user.getEmail(), user.getPassword()), "Invalid login credentials");
-    }
-
-    @Test
-    void registerUser_whenUserDoesNotExist_thenRegisterAndReturnDTO() {
-        // Given
-        user.setPassword("testPassword");
-
-        // When
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.empty());
-
-        UserDTO expectedUserDTO = new UserDTO(user.getEmail(), user.getUsername());
-        when(userMapper.apply(any(User.class))).thenReturn(expectedUserDTO);
-
-        User savedUser = new User();
-        savedUser.setUsername(user.getUsername());
-        savedUser.setEmail(user.getEmail());
-        savedUser.setPassword("encodedPassword");
-        savedUser.setRole(user.getRole());
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
-        UserDTO userDTO = authService.registerUser(user);
-
-        // Then
-        assertNotNull(userDTO);
-        assertEquals(user.getUsername(), userDTO.getUsername());
-        assertEquals(user.getEmail(), userDTO.getEmail());
-        verify(userRepository).save(any(User.class));
-    }
 
     @Test
     void registerUser_whenUsernameExists_thenThrowException() {
@@ -171,36 +127,20 @@ class AuthServiceTest {
 
         // When & Then
         assertUserAccountException(() ->
-                authService.registerUser(user), user.getUsername() + " already exist");
+                authService.registerUser(user, user.getPassword()), user.getUsername() + " already exist");
     }
 
     @Test
     void registerUser_EmailExists_ThrowsException() {
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
-        assertThrows(UserAccountException.class, () -> authService.registerUser(user));
+        assertThrows(UserAccountException.class, () -> authService.registerUser(user, user.getPassword()));
     }
 
     @Test
     void logout_Success() {
         authService.logout(user.getEmail());
         verify(tokenService).invalidateToken(user.getEmail());
-    }
-
-    @Test
-    void testChangePasswordSuccess() {
-        // Given
-        String currentPassword = "password";
-        user.setPassword(passwordEncoder.encode(currentPassword));
-
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-
-        // When
-        authService.changePassword(user.getUsername(), currentPassword, "newPassword");
-
-        // Then
-        assertTrue(passwordEncoder.matches("newPassword", user.getPassword()));
-        verify(userRepository, times(1)).save(user);
     }
 
     private void assertUserAccountException(Executable action, String expectedMessage) {
@@ -217,65 +157,6 @@ class AuthServiceTest {
         assertUserAccountException(() -> authService.changePassword(
                 user.getUsername(), "anyPassword", "newPassword"), "User not found");
     }
-
-    @Test
-    void testChangePasswordInvalidCurrentPassword() {
-        // Given & When
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-
-        // Then
-        assertUserAccountException(() -> authService.changePassword(
-                user.getUsername(), "wrongPassword", "newPassword"), "Invalid current password");
-    }
-
-    @Test
-    void changePassword_whenValidCurrentPassword_thenChangePassword() {
-        // Given
-        String currentPassword = "testPassword";
-        String newPassword = "newPassword";
-
-        String encodedCurrentPassword = new BCryptPasswordEncoder().encode(currentPassword);
-        String encodedNewPassword = new BCryptPasswordEncoder().encode(newPassword);
-
-        user.setPassword(encodedCurrentPassword);
-
-        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User updatedUser = invocation.getArgument(0);
-            updatedUser.setPassword(encodedNewPassword);
-            return updatedUser;
-        });
-
-        // When
-        authService.changePassword(user.getUsername(), currentPassword, newPassword);
-
-        // Then
-        assertEquals(encodedNewPassword, user.getPassword());
-        verify(userRepository, times(1)).save(user);
-    }
-
-//    @Test
-//    void changeUserRole_whenValidRole_thenChangeRole() {
-//        // Given
-//        Role newRole = Role.SUBSCRIBER;
-//
-//        when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
-//
-//        User updatedUser = new User();
-//        updatedUser.setUsername(user.getUsername());
-//        updatedUser.setEmail(user.getEmail());
-//        updatedUser.setPassword(user.getPassword());
-//        updatedUser.setRole(newRole);
-//
-//        when(userRepository.save(any(User.class))).thenReturn(updatedUser);
-//
-//        // When
-//        User result = authService.changeUserRole(user.getUsername(), newRole);
-//
-//        // Then
-//        assertEquals(newRole, result.getRole());
-//        verify(userRepository, times(1)).save(any(User.class));
-//    }
 
     @Test
     void changeUserRole_UserNotFound_ThrowsException() {

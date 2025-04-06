@@ -82,7 +82,7 @@ class AuthControllerTest {
         RegisterRequest request = new RegisterRequest("testUser", "Test@123", "user@example.com", "USER");
         UserDTO responseDTO = new UserDTO("user@example.com", "testUser");
 
-        when(authService.registerUser(any())).thenReturn(responseDTO);
+        when(authService.registerUser(any(), anyString())).thenReturn(responseDTO);
 
         mockMvc.perform(post(Constants.AUTH_PATH + "/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -96,7 +96,7 @@ class AuthControllerTest {
 
     @Test
     void testLogin_Success() throws Exception {
-        LoginRequest loginRequest = new LoginRequest("testUser", "user@example.com", "Test@123");
+        LoginRequest loginRequest = new LoginRequest("user@example.com", "Test@123");
 
         Authentication authentication = mock(Authentication.class);
         UserDetails userDetails = mock(UserDetails.class);
@@ -105,7 +105,7 @@ class AuthControllerTest {
 
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
-        when(authService.authenticate("user@example.com", "Test@123")).thenReturn("mockToken");
+        //when(authService.authenticate("user@example.com", "Test@123")).thenReturn("mockToken");
 
         mockMvc.perform(post(Constants.AUTH_PATH + "/login")
                         .contentType(MediaType.APPLICATION_JSON)
