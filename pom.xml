@@ -208,6 +208,7 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <finalName>blog-app-1.0</finalName>
                 </configuration>
             </plugin>
             <plugin>
@@ -257,7 +258,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.8.7</version>
+                        <version>0.8.8</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>

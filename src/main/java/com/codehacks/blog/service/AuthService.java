@@ -3,15 +3,18 @@ package com.codehacks.blog.service;
 import com.codehacks.blog.dto.UserDTO;
 import com.codehacks.blog.exception.UserAccountException;
 import com.codehacks.blog.mapper.UserMapper;
+import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Role;
 import com.codehacks.blog.model.User;
 import com.codehacks.blog.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -20,42 +23,68 @@ import java.util.Optional;
 @AllArgsConstructor
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final TokenService tokenService;
     private final AdminService adminService;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
-    public String authenticate(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserAccountException("Invalid login credentials"));
+    public String authenticate(CustomUserDetails customUserDetails) {
+        log.info("AuthService: Starting authentication for email: {}", customUserDetails.getEmail());
+        Optional<User> optionalUser = userRepository.findByEmail(customUserDetails.getEmail());
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new UserAccountException("Invalid password");
+        if (optionalUser.isEmpty()) {
+            log.error("AuthService: User not found with email: {}", customUserDetails.getEmail());
+            throw new UserAccountException("Invalid login credentials");
         }
 
-        if (tokenService.hasExistingToken(email)) {
-            return tokenService.getToken(email);
+        User user = optionalUser.get();
+        log.info("AuthService: User found - Username: {}, Email: {}", user.getUsername(), user.getEmail());
+
+        return generateToken(customUserDetails);
+    }
+
+    private String generateToken(UserDetails userDetails) {
+        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+        if (optionalUser.isEmpty()) {
+            throw new UserAccountException("User not found");
+        }
+
+        User user = optionalUser.get();
+
+        if (tokenService.hasExistingToken(user.getEmail())) {
+            return tokenService.getToken(user.getEmail());
         }
 
         return tokenService.generateToken(user);
     }
 
-    public UserDTO registerUser(User user) {
+    public UserDTO registerUser(User user, String rawPassword) {
+        log.info("Registration details - Username: {}, Email: {}, Role: {}",
+                user.getUsername(), user.getEmail(), user.getRole());
+
         if (checkIfUsernameExists(user)) {
+            log.error("Username already exists: {}", user.getUsername());
             throw new UserAccountException(user.getUsername() + " already exist");
         }
         if (checkIfEmailExists(user.getEmail())) {
+            log.error("Email already exists: {}", user.getEmail());
             throw new UserAccountException(user.getEmail() + " already exist");
         }
 
         User newUser = new User();
         newUser.setUsername(user.getUsername());
-        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        newUser.setPassword(encodedPassword);
         newUser.setEmail(user.getEmail());
-        newUser.setRole(Role.USER);
+        newUser.setRole(user.getRole());
         newUser.setEnabled(true);
+
         User savedUser = userRepository.save(newUser);
+        log.info("User saved successfully - ID: {}, Username: {}, Email: {}, Role: {}",
+                savedUser.getId(), savedUser.getUsername(), savedUser.getEmail(), savedUser.getRole());
 
         tokenService.generateToken(newUser);
         return userMapper.apply(savedUser);

@@ -8,11 +8,15 @@ import com.codehacks.blog.model.Post;
 import com.codehacks.blog.repository.AuthorRepository;
 import com.codehacks.blog.repository.BlogRepository;
 import com.codehacks.blog.util.Constants;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,6 +51,7 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Transactional
     public Post createPost(Post post) throws InvalidPostException {
         if (post.getTitle() == null) {
             throw new InvalidPostException("Title cannot be null");
@@ -63,21 +68,20 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Transactional
     public Post updatePost(Post post, Long blogId) {
-        if (blogRepository.existsById(blogId) && post != null) {
-            Optional<Post> retrievedPost = blogRepository.findById(blogId);
-            if (retrievedPost.isPresent()) {
-                Post blogPost = retrievedPost.get();
-                blogPost.setTitle(post.getTitle());
-                blogPost.setContent(post.getContent());
-                blogPost.setUpdatedAt(LocalDateTime.now());
-                return blogRepository.save(blogPost);
-            }
-        }
-        throw new PostNotFoundException("Post not found with id: " + blogId);
+        Post blogPost = blogRepository.findById(blogId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + blogId));
+
+        blogPost.setTitle(post.getTitle());
+        blogPost.setContent(post.getContent());
+        blogPost.setUpdatedAt(LocalDateTime.now());
+
+        return blogRepository.save(blogPost);
     }
 
     @Override
+    @Transactional
     public Boolean deletePost(Long blogId) throws InvalidPostException {
         if (blogId <= 0) {
             throw new InvalidPostException("Post cannot have a non-positive id");

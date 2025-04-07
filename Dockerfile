@@ -6,7 +6,7 @@ RUN apk add --no-cache curl
 WORKDIR /app
 
 # Copy the JAR file into the container
-COPY target/blog-app-1.0-SNAPSHOT.jar app.jar
+COPY target/blog-app-1.0.jar app.jar
 
 # Set the entry point for the container
 ENTRYPOINT ["java", "-jar", "app.jar"]
