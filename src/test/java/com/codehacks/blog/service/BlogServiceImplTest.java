@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BlogServiceImplTest {
-    
+
     @Mock
     private BlogRepository blogRepository;
 
@@ -79,14 +79,14 @@ class BlogServiceImplTest {
     void shouldReturnEmptySetWhenNoPostsExist() {
         // Given
         when(blogRepository.findAll()).thenReturn(Collections.emptyList());
-        
+
         // When
         Set<Post> result = blogService.getAllPosts();
-        
+
         // Then
         assertAll(
-            () -> assertNotNull(result),
-            () -> assertTrue(result.isEmpty())
+                () -> assertNotNull(result),
+                () -> assertTrue(result.isEmpty())
         );
         verify(blogRepository).findAll();
     }
@@ -100,11 +100,11 @@ class BlogServiceImplTest {
         when(blogRepository.findAll()).thenReturn(duplicatePosts);
 
         Set<Post> result = blogService.getAllPosts();
-        
+
         // Then
         assertAll(
-            () -> assertEquals(1, result.size()),
-            () -> assertTrue(result.contains(testPost))
+                () -> assertEquals(1, result.size()),
+                () -> assertTrue(result.contains(testPost))
         );
         verify(blogRepository, times(1)).findAll();
     }
@@ -116,7 +116,6 @@ class BlogServiceImplTest {
         Post updatedPost = new Post("Updated Title", "Updated Content");
 
         // When
-        when(blogRepository.existsById(postId)).thenReturn(true);
         when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
         when(blogRepository.save(any(Post.class))).thenReturn(updatedPost);
 
@@ -152,14 +151,14 @@ class BlogServiceImplTest {
     void shouldHandleInvalidPostsForUpdate(Post invalidPost, Long id) {
         // When & Then
         assertThrows(PostNotFoundException.class,
-            () -> blogService.updatePost(invalidPost, id));
+                () -> blogService.updatePost(invalidPost, id));
     }
 
     private static Stream<Arguments> provideInvalidPosts() {
         return Stream.of(
-            Arguments.of(null, 1L),
-            Arguments.of(new Post("", ""), 1L),
-            Arguments.of(new Post(null, null), 1L)
+                Arguments.of(null, 1L),
+                Arguments.of(new Post("", ""), 1L),
+                Arguments.of(new Post(null, null), 1L)
         );
     }
 
@@ -168,10 +167,10 @@ class BlogServiceImplTest {
         // Given
         Long postId = 1L;
         when(blogRepository.existsById(postId)).thenReturn(true);
-        
+
         // When
         blogService.deletePost(postId);
-        
+
         // Then
         verify(blogRepository, times(1)).deleteById(postId);
     }
