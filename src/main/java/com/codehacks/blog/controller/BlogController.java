@@ -39,7 +39,7 @@ public class BlogController {
     }
 
     @GetMapping(value = "/{id}", produces = "application/json")
-    public ResponseEntity<Post> getPostById(@PathVariable Long id) {
+    public ResponseEntity<Post> getPostById(@Valid @Positive @PathVariable Long id) {
         Post post = blogService.getPostById(id);
         if (post != null) {
             return new ResponseEntity<>(post, HttpStatus.OK);
@@ -50,8 +50,12 @@ public class BlogController {
     @PostMapping(value = "/create", produces = "application/json")
     public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post post) throws InvalidPostException {
         log.info("Received Post: {}", post);
-        Post createdPost = blogService.createPost(post);
-        return ResponseEntity.ok(ApiResponse.created(createdPost));
+        try {
+            Post createdPost = blogService.createPost(post);
+            return ResponseEntity.ok(ApiResponse.created(createdPost));
+        } catch (InvalidPostException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
     }
 
     @PutMapping(value = "/update/{id}", produces = "application/json")

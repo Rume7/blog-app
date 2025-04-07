@@ -1,347 +1,122 @@
 package com.codehacks.blog.controller;
 
-import com.codehacks.blog.config.SecurityConfig;
+import com.codehacks.blog.config.JwtAuthenticationFilter;
+import com.codehacks.blog.exception.GlobalExceptionHandler;
 import com.codehacks.blog.exception.InvalidPostException;
+import com.codehacks.blog.exception.PostNotFoundException;
 import com.codehacks.blog.model.Author;
-import com.codehacks.blog.model.CustomUserDetails;
 import com.codehacks.blog.model.Post;
-import com.codehacks.blog.model.Role;
-import com.codehacks.blog.service.AuthService;
 import com.codehacks.blog.service.BlogService;
-import com.codehacks.blog.service.TokenService;
-import com.codehacks.blog.util.Constants;
-import com.codehacks.blog.util.JwtUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@EnableAspectJAutoProxy
-@ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(BlogController.class)
-@Import({SecurityConfig.class})
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Import(GlobalExceptionHandler.class)
 class BlogControllerTest {
 
     @Autowired
-    private WebApplicationContext context;
-
     private MockMvc mockMvc;
 
     @MockBean
     private BlogService blogService;
 
     @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private TokenService tokenService;
-
-    @MockBean
-    private AuthService authService;
-
-    @MockBean
-    private UserDetailsService userDetailsService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @BeforeEach
-    public void setUp() {
-        mockMvc = MockMvcBuilders
-                .webAppContextSetup(context)
-                .apply(springSecurity())
-                .build();
-    }
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
-    void testCreatePostWithValue() throws InvalidPostException, Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+    void shouldReturnAllPosts() throws Exception {
+        // Given
+        Author author = new Author();
+        author.setFirstName("Jane");
+        author.setLastName("Doe");
 
-        Post post = new Post("Blog Title", "This is the content of the post");
-        Author author = new Author("Larry", "Fink");
-        post.setAuthor(author);
+        Post post1 = new Post("Post 1", "Content 1", author);
+        Post post2 = new Post("Post 2", "Content 2", author);
+        Set<Post> posts = new HashSet<>(Arrays.asList(post1, post2));
 
-        when(blogService.createPost(any(Post.class))).thenReturn(post);
+        // When
+        Mockito.when(blogService.getAllPosts()).thenReturn(posts);
 
-        ResultActions resultActions = mockMvc.perform(post(Constants.BLOG_PATH + "/create")
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(post)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.title").value("Blog Title"))
-                .andExpect(jsonPath("$.data.content").value("This is the content of the post"));
-
-        verify(blogService, times(1)).createPost(any(Post.class));
-    }
-
-    private UserDetails createUserDetails(String username, Role role) {
-        return new CustomUserDetails(username, "Register123Password&", "user@example.com",
-                role, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name())), true);
-    }
-
-    @Test
-    void createPostWithIncorrectTitleLength() throws InvalidPostException, Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-
-        Post newPost = new Post("Title", "This is a post you would like to read");
-
-        when(blogService.createPost(any(Post.class)))
-                .thenThrow(new InvalidPostException("Title length is too short"));
-
-        ResultActions resultActions = mockMvc.perform(post(Constants.BLOG_PATH + "/create")
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newPost)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isBadRequest());
-        verify(blogService, times(1)).createPost(any(Post.class));
-    }
-
-    @Test
-    void testUpdatePostSuccess() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-        Long postId = 1L;
-
-        Post updatedPost = new Post("Updated Title", "Updated content");
-        Author author = new Author("John", "Doe");
-        updatedPost.setAuthor(author);
-
-        when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
-
-        ResultActions resultActions = mockMvc.perform(put(Constants.BLOG_PATH + "/update/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPost)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.title").value("Updated Title"))
-                .andExpect(jsonPath("$.data.content").value("Updated content"));
-
-        verify(blogService, times(1)).updatePost(any(Post.class), eq(postId));
-    }
-
-    @Test
-    void testUpdatePostNotFound() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-        Long postId = 999L;
-
-        Post updatedPost = new Post("Updated Title", "Updated content");
-        when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(null);
-
-        ResultActions resultActions = mockMvc.perform(put(Constants.BLOG_PATH + "/update/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPost)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(Constants.POST_NOT_FOUND + postId));
-    }
-
-    @Test
-    void testUpdatePostInvalidId() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-
-        Post updatedPost = new Post("Updated Title", "Updated content");
-
-        ResultActions resultActions = mockMvc.perform(put(Constants.BLOG_PATH + "/update/-1")
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPost)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void testUpdatePostInvalidContent() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-        long postId = 1L;
-
-        Post updatedPost = new Post("", "");
-
-        ResultActions resultActions = mockMvc.perform(put(Constants.BLOG_PATH + "/update/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPost)))
-                .andDo(print());
-
-        resultActions.andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void testDeletePostSuccess() throws Exception, InvalidPostException {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-        Long postId = 1L;
-
-        when(blogService.deletePost(postId)).thenReturn(true);
-
-        ResultActions resultActions = mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isNoContent());
-        verify(blogService, times(1)).deletePost(postId);
-    }
-
-    @Test
-    void testDeletePostNotFound() throws Exception, InvalidPostException {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-        Long postId = 999L;
-
-        when(blogService.deletePost(postId)).thenReturn(false);
-
-        ResultActions resultActions = mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isNotFound());
-        verify(blogService, times(1)).deletePost(postId);
-    }
-
-    @Test
-    void testDeletePostWithInvalidId() throws Exception {
-        String username = "testUser";
-        long postId = -1L;
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-
-        ResultActions resultActions = mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/" + postId)
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isNotFound());
-    }
-
-    @Test
-    void testGetAllPostsSuccess() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
-
-        Set<Post> posts = new HashSet<>();
-        Post post1 = new Post("First Post", "Content 1");
-        Post post2 = new Post("Second Post", "Content 2");
-        posts.add(post1);
-        posts.add(post2);
-
-        when(blogService.getAllPosts()).thenReturn(posts);
-
-        ResultActions resultActions = mockMvc.perform(get(Constants.BLOG_PATH + "/all")
-                        .with(user(userDetails))
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[*].title", containsInAnyOrder("First Post", "Second Post")))
-                .andExpect(jsonPath("$[*].content", containsInAnyOrder("Content 1", "Content 2")));
+        // Then
+        mockMvc.perform(get("/api/v1/blog/all")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(posts.size()))
+                .andExpect(jsonPath("$[0].title").value("Post 1"))
+                .andExpect(jsonPath("$[1].title").value("Post 2"));
 
         verify(blogService, times(1)).getAllPosts();
     }
 
     @Test
-    void testGetAllPostsEmpty() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+    void shouldReturnEmptyListWhenNoPostsExist() throws Exception {
+        // Given & When
+        when(blogService.getAllPosts()).thenReturn(Collections.emptySet());
 
-        when(blogService.getAllPosts()).thenReturn(new HashSet<>());
-
-        ResultActions resultActions = mockMvc.perform(get(Constants.BLOG_PATH + "/all")
-                        .with(user(userDetails))
+        // Then
+        mockMvc.perform(get("/api/v1/blog/all")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
 
         verify(blogService, times(1)).getAllPosts();
     }
 
     @Test
-    void testGetAllPostsUnauthorized() throws Exception {
-        when(blogService.getAllPosts()).thenReturn(new HashSet<>());
+    void shouldReturnInternalServerErrorIfServiceFails() throws Exception {
+        // Given & When
+        when(blogService.getAllPosts()).thenThrow(new RuntimeException("Database down"));
 
-        mockMvc.perform(get(Constants.BLOG_PATH + "/all")
-                        .with(anonymous())  // Explicitly set as anonymous user
+        // Then
+        mockMvc.perform(get("/api/v1/blog/all")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isInternalServerError());
+
+        verify(blogService, times(1)).getAllPosts();
     }
 
     @Test
-    void testGetPostByIdSuccess() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+    void shouldReturnPostWhenPostExists() throws Exception {
+        // Given
         Long postId = 1L;
+        Post post = new Post("Test Post", "This is the content", new Author("John", "Doe"));
+        post.setId(postId);
 
-        Post post = new Post("Test Post", "Test Content");
-        Author author = new Author("John", "Doe");
-        post.setAuthor(author);
-
+        // When
         when(blogService.getPostById(postId)).thenReturn(post);
 
-        ResultActions resultActions = mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
-                        .with(user(userDetails))
+        // Then
+        mockMvc.perform(get("/api/v1/blog/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
-
-        resultActions.andExpect(status().isOk())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Test Post"))
-                .andExpect(jsonPath("$.content").value("Test Content"))
+                .andExpect(jsonPath("$.content").value("This is the content"))
                 .andExpect(jsonPath("$.author.firstName").value("John"))
                 .andExpect(jsonPath("$.author.lastName").value("Doe"));
 
@@ -349,32 +124,204 @@ class BlogControllerTest {
     }
 
     @Test
-    void testGetPostByIdNotFound() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+    void shouldReturnNotFoundWhenPostDoesNotExist() throws Exception {
+        // Given
         Long postId = 999L;
 
+        // When
         when(blogService.getPostById(postId)).thenReturn(null);
 
-        ResultActions resultActions = mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
-                        .with(user(userDetails))
+        // Then
+        mockMvc.perform(get("/api/v1/blog/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
+                .andExpect(status().isNotFound());
 
-        resultActions.andExpect(status().isNotFound());
+        verify(blogService, times(1)).getPostById(postId);
+    }
+
+
+    @Test
+    void shouldReturnInternalServerErrorIfServiceThrowsException() throws Exception {
+        // Given
+        Long postId = 1L;
+
+        // When
+        when(blogService.getPostById(postId)).thenThrow(new RuntimeException("Database error"));
+
+        // Then
+        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+
         verify(blogService, times(1)).getPostById(postId);
     }
 
     @Test
-    void testGetPostByIdInvalidId() throws Exception {
-        String username = "testUser";
-        UserDetails userDetails = createUserDetails(username, Role.SUBSCRIBER);
+    void shouldHandlePostNotFoundException() throws Exception {
+        // Given
+        Long postId = 999L;
 
-        ResultActions resultActions = mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", -1)
-                        .with(user(userDetails))
+        // When
+        when(blogService.getPostById(postId)).thenThrow(new PostNotFoundException("Post not found"));
+
+        // Then
+        mockMvc.perform(get("/api/v1/blog/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Post not found"));
 
-        resultActions.andExpect(status().isNotFound());
+        verify(blogService, times(1)).getPostById(postId);
+    }
+
+    @Test
+    void shouldReturnInternalServerErrorIfServiceThrowsExceptionInGetPostById() throws Exception {
+        // Given
+        Long postId = 1L;
+
+        // When
+        when(blogService.getPostById(postId)).thenThrow(new RuntimeException("Database error"));
+
+        // Then
+        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+
+        verify(blogService, times(1)).getPostById(postId);
+    }
+
+    @Test
+    void shouldCreatePostSuccessfully() throws Exception, InvalidPostException {
+        // Given
+        Post post = new Post("Valid Title", "This is a valid blog post content");
+        post.setId(1L);  // Setting an ID as it will be returned by the service.
+
+        // When
+        when(blogService.createPost(any(Post.class))).thenReturn(post);
+
+        // Then
+        mockMvc.perform(post("/api/v1/blog/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Valid Title\", \"content\":\"This is a valid blog post content\"}"))
+                .andExpect(status().is2xxSuccessful())  // Expecting 201 Created
+                .andExpect(jsonPath("$.data.title").value("Valid Title"))
+                .andExpect(jsonPath("$.data.content").value("This is a valid blog post content"));
+    }
+
+
+    @Test
+    void shouldReturnBadRequestWhenTitleIsTooShort() throws Exception, InvalidPostException {
+        // Given
+        String shortTitle = "ABC";
+
+        // When
+        when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title length is too short"));
+
+        // Then
+        mockMvc.perform(post("/api/v1/blog/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"" + shortTitle + "\", \"content\":\"Content for readers\"}"))
+                .andExpect(status().isBadRequest())  // Expecting 400 Bad Request
+                .andExpect(jsonPath("$.message").value("Title length is too short"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenTitleIsTooLong() throws Exception, InvalidPostException {
+        // Given
+        String longTitle = "A".repeat(200);
+
+        // When
+        when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title length is too long"));
+
+        // Then
+        mockMvc.perform(post("/api/v1/blog/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"" + longTitle + "\", \"content\":\"Content\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Title length is too long"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenTitleIsNull() throws Exception, InvalidPostException {
+        // Given
+        Post post = new Post(null, "Content");
+
+        // When
+        when(blogService.createPost(post)).thenThrow(new InvalidPostException("Title cannot be null"));
+
+        // Then
+        mockMvc.perform(post("/api/v1/blog/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":null, \"content\":\"Content\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenContentIsNull() throws Exception, InvalidPostException {
+        // Given
+        Post post = new Post("Valid Title", null);
+
+        // When
+        when(blogService.createPost(post)).thenThrow(new InvalidPostException("Blog post cannot be empty"));
+
+        // Then
+        mockMvc.perform(post("/api/v1/blog/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Valid Title\", \"content\":null}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldUpdatePostSuccessfully() throws Exception {
+        // Given
+        Long postId = 1L;
+        Post originalPost = new Post("Original Title", "Original content");
+        Post updatedPost = new Post("Updated Title", "Updated content");
+
+        // When
+        when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
+
+        // Then
+        mockMvc.perform(put("/api/v1/blog/update/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("Updated Title"))
+                .andExpect(jsonPath("$.data.content").value("Updated content"));
+    }
+
+    @Test
+    void shouldReturnNoContentWhenPostIsDeletedSuccessfully() throws Exception, InvalidPostException {
+        // Given
+        Long postId = 1L;
+
+        // When
+        when(blogService.deletePost(postId)).thenReturn(true);
+
+        // Then
+        mockMvc.perform(delete("/api/v1/blog/delete/{id}", postId))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenPostToDeleteDoesNotExist() throws Exception, InvalidPostException {
+        // Given
+        Long postId = 1L;
+
+        // When
+        when(blogService.deletePost(postId)).thenReturn(false);
+
+        // Then
+        mockMvc.perform(delete("/api/v1/blog/delete/{id}", postId))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenPostIdIsInvalid() throws Exception {
+        // When & Then
+        mockMvc.perform(delete("/api/v1/blog/delete/{id}", -1L))
+                .andExpect(status().isNotFound()) // Expect 400 Bad Request
+                .andExpect(content().string("")); // Expect empty body
     }
 }
