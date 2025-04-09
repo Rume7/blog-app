@@ -1,11 +1,12 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.exception.InvalidPostException;
-import com.codehacks.blog.exception.PostNotFoundException;
-import com.codehacks.blog.model.Author;
-import com.codehacks.blog.model.Post;
-import com.codehacks.blog.repository.AuthorRepository;
-import com.codehacks.blog.repository.BlogRepository;
+import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.post.model.Author;
+import com.codehacks.blog.post.model.Post;
+import com.codehacks.blog.auth.repository.AuthorRepository;
+import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.post.service.BlogServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

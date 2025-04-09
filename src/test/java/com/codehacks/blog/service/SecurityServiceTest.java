@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.config.MailConfig;
+import com.codehacks.blog.auth.config.MailConfig;
+import com.codehacks.blog.auth.service.SecurityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -111,7 +112,8 @@ class SecurityServiceTest {
         sendEmailMethod.setAccessible(true);
 
         // When
-        doThrow(new MailException("Simulated mail exception") {}).when(mailSenderMock).send(any(SimpleMailMessage.class));
+        doThrow(new MailException("Simulated mail exception") {
+        }).when(mailSenderMock).send(any(SimpleMailMessage.class));
         when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
 
         SecurityService securityService = new SecurityService(mailConfigMock, knownIps);

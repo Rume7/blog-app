@@ -1,5 +1,6 @@
 package com.codehacks.blog.config;
 
+import com.codehacks.blog.auth.config.MailConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

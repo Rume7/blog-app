@@ -22,7 +22,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserDTO'
-
   /api/v1/auth/login:
     post:
       summary: Login a user
@@ -41,7 +40,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponseDTO'
-
   /api/v1/auth/change-password:
     put:
       summary: Change user password
@@ -58,7 +56,6 @@ paths:
           description: Password changed successfully
         '404':
           description: User account not found
-
   /api/v1/auth/delete-account:
     delete:
       summary: Delete a user account
@@ -76,7 +73,6 @@ paths:
           description: Account deleted successfully
         '403':
           description: Not authorized to delete this account
-
   /api/v1/auth/logout:
     post:
       summary: Log out a user
@@ -85,7 +81,6 @@ paths:
       responses:
         '200':
           description: Logged out successfully
-
   /api/v1/blog/all:
     get:
       summary: Get all blog posts
@@ -100,7 +95,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Post'
-
   /api/v1/blog/{id}:
     get:
       summary: Get a single blog post by ID
@@ -122,7 +116,6 @@ paths:
                 $ref: '#/components/schemas/Post'
         '404':
           description: Post not found
-
   /api/v1/blog/create:
     post:
       summary: Create a new blog post
@@ -141,7 +134,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/update/{id}:
     put:
       summary: Update an existing blog post
@@ -150,3 +142,16 @@ paths:
       parameters:
         - name: id
           in: path
+  /api/v1/blog/delete/{id}:
+    delete:
+      summary: Delete an existing blog post
+      tags:
+        - Blog
+      parameters:
+        - name: id
+          in: path
+  /api/v1/blog/previews:
+    get:
+      summary: Get a preview of blog posts
+      tags:
+        - Blog

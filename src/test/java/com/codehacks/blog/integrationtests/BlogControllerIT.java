@@ -1,9 +1,9 @@
 package com.codehacks.blog.integrationtests;
 
-import com.codehacks.blog.model.Post;
-import com.codehacks.blog.model.User;
-import com.codehacks.blog.repository.BlogRepository;
-import com.codehacks.blog.repository.UserRepository;
+import com.codehacks.blog.post.model.Post;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.auth.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
@@ -94,7 +94,7 @@ class BlogControllerIT {
 
         // When & Then
         mockMvc.perform(get("/api/posts")
-                .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)));
@@ -105,12 +105,12 @@ class BlogControllerIT {
         // Given
         String token = getToken();
 
-        Post post = new Post( "Title", "Content");
+        Post post = new Post("Title", "Content");
         Post savedPost = blogRepository.save(post);
 
         // When & Then
         mockMvc.perform(get("/api/posts/{id}", savedPost.getId())
-                .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + token))
 //                        .param("id", String.valueOf(post.getId())))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -174,7 +174,7 @@ class BlogControllerIT {
         // When & Then
         mockMvc.perform(delete("/api/posts/{id}", savedPost.getId())
                         .header("Authorization", "Bearer " + token))
-            .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent());
 
         // Verify deletion
         mockMvc.perform(get("/api/posts/{id}", savedPost.getId()))

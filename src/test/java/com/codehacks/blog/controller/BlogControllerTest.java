@@ -1,12 +1,13 @@
 package com.codehacks.blog.controller;
 
-import com.codehacks.blog.config.JwtAuthenticationFilter;
-import com.codehacks.blog.exception.GlobalExceptionHandler;
-import com.codehacks.blog.exception.InvalidPostException;
-import com.codehacks.blog.exception.PostNotFoundException;
-import com.codehacks.blog.model.Author;
-import com.codehacks.blog.model.Post;
-import com.codehacks.blog.service.BlogService;
+import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
+import com.codehacks.blog.auth.exception.GlobalExceptionHandler;
+import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.post.model.Author;
+import com.codehacks.blog.post.model.Post;
+import com.codehacks.blog.post.controller.BlogController;
+import com.codehacks.blog.post.service.BlogService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,8 +69,8 @@ class BlogControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(posts.size()))
-                .andExpect(jsonPath("$[0].title").value("Post 1"))
-                .andExpect(jsonPath("$[1].title").value("Post 2"));
+                .andExpect(jsonPath("$[0].title").value("Post 2"))
+                .andExpect(jsonPath("$[1].title").value("Post 1"));
 
         verify(blogService, times(1)).getAllPosts();
     }

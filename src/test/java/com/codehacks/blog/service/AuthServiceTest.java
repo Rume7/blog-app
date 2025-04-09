@@ -1,14 +1,17 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.model.CustomUserDetails;
+import com.codehacks.blog.auth.model.CustomUserDetails;
+import com.codehacks.blog.auth.service.AdminService;
+import com.codehacks.blog.auth.service.AuthService;
+import com.codehacks.blog.auth.service.TokenService;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.codehacks.blog.exception.UserAccountException;
-import com.codehacks.blog.mapper.UserMapper;
-import com.codehacks.blog.model.Role;
-import com.codehacks.blog.model.User;
-import com.codehacks.blog.repository.UserRepository;
+import com.codehacks.blog.auth.exception.UserAccountException;
+import com.codehacks.blog.auth.mapper.UserMapper;
+import com.codehacks.blog.auth.model.Role;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.auth.repository.UserRepository;
 import com.codehacks.blog.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

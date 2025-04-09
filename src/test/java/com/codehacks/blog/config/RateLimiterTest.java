@@ -1,5 +1,7 @@
 package com.codehacks.blog.config;
 
+import com.codehacks.blog.auth.config.RateLimit;
+import com.codehacks.blog.auth.config.RateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.aspectj.lang.ProceedingJoinPoint;

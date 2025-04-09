@@ -1,8 +1,8 @@
 package com.codehacks.blog.integrationtests;
 
-import com.codehacks.blog.controller.AuthController;
-import com.codehacks.blog.model.User;
-import com.codehacks.blog.repository.UserRepository;
+import com.codehacks.blog.auth.controller.AuthController;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.auth.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -133,7 +133,7 @@ class AuthControllerIT {
 
         // Then
         User updatedUser = userRepository.findByEmail("user@example.com").orElseThrow();
-        assert(new BCryptPasswordEncoder().matches(newPassword, updatedUser.getPassword()));
+        assert (new BCryptPasswordEncoder().matches(newPassword, updatedUser.getPassword()));
     }
 
     @Test
@@ -173,7 +173,7 @@ class AuthControllerIT {
                 .andExpect(status().isNoContent());
 
         // Then
-        assert(userRepository.findByEmail("user@example.com").isEmpty());
+        assert (userRepository.findByEmail("user@example.com").isEmpty());
     }
 
     @Test

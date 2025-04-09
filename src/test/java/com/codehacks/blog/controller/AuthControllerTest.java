@@ -1,14 +1,15 @@
 package com.codehacks.blog.controller;
 
-import com.codehacks.blog.dto.LoginRequest;
-import com.codehacks.blog.dto.PasswordChangeRequest;
-import com.codehacks.blog.dto.RegisterRequest;
-import com.codehacks.blog.dto.RoleChangeRequest;
-import com.codehacks.blog.dto.UserDTO;
-import com.codehacks.blog.model.CustomUserDetails;
-import com.codehacks.blog.model.Role;
-import com.codehacks.blog.model.User;
-import com.codehacks.blog.service.AuthService;
+import com.codehacks.blog.auth.controller.AuthController;
+import com.codehacks.blog.auth.dto.LoginRequest;
+import com.codehacks.blog.auth.dto.PasswordChangeRequest;
+import com.codehacks.blog.auth.dto.RegisterRequest;
+import com.codehacks.blog.auth.dto.RoleChangeRequest;
+import com.codehacks.blog.auth.dto.UserDTO;
+import com.codehacks.blog.auth.model.CustomUserDetails;
+import com.codehacks.blog.auth.model.Role;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.auth.service.AuthService;
 import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
