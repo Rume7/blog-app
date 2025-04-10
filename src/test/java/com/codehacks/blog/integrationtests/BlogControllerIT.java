@@ -1,5 +1,6 @@
 package com.codehacks.blog.integrationtests;
 
+import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.auth.model.User;
 import com.codehacks.blog.post.repository.BlogRepository;
@@ -43,6 +44,8 @@ class BlogControllerIT {
     @Autowired
     private UserRepository userRepository;
 
+    private Author testAuthor;
+
     private ObjectMapper objectMapper;
 
     static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"))
@@ -62,6 +65,8 @@ class BlogControllerIT {
         objectMapper = new ObjectMapper();
         blogRepository.deleteAll();
         userRepository.deleteAll();
+
+        testAuthor = new Author("Test", "Author");
 
         // Create a user for authentication
         User user = new User();
@@ -87,8 +92,8 @@ class BlogControllerIT {
         // Given
         String token = getToken();
 
-        Post post1 = new Post("Title 1", "Content 1");
-        Post post2 = new Post("Title 2", "Content 2");
+        Post post1 = new Post("Title 1", "Content 1", testAuthor);
+        Post post2 = new Post("Title 2", "Content 2", testAuthor);
         blogRepository.save(post1);
         blogRepository.save(post2);
 
@@ -105,7 +110,7 @@ class BlogControllerIT {
         // Given
         String token = getToken();
 
-        Post post = new Post("Title", "Content");
+        Post post = new Post("Title", "Content", testAuthor);
         Post savedPost = blogRepository.save(post);
 
         // When & Then
@@ -131,7 +136,7 @@ class BlogControllerIT {
     void testCreatePost() throws Exception {
         // Given
         String token = getToken();
-        Post post = new Post("New Title", "New Content");
+        Post post = new Post("New Title", "New Content", testAuthor);
 
         // When & Then
         mockMvc.perform(post("/api/posts")
@@ -149,9 +154,9 @@ class BlogControllerIT {
         // Given
         String token = getToken();
 
-        Post post = new Post("Old Title", "Old Content");
+        Post post = new Post("Old Title", "Old Content", testAuthor);
         Post savedPost = blogRepository.save(post);
-        Post updatedPost = new Post("Updated Title", "Updated Content");
+        Post updatedPost = new Post("Updated Title", "Updated Content", testAuthor);
 
         // When & Then
         mockMvc.perform(put("/api/posts/{id}", savedPost.getId())
@@ -168,7 +173,7 @@ class BlogControllerIT {
     void testDeletePost() throws Exception {
         // Given
         String token = getToken();
-        Post post = new Post("Title", "Content");
+        Post post = new Post("Title", "Content", testAuthor);
         Post savedPost = blogRepository.save(post);
 
         // When & Then

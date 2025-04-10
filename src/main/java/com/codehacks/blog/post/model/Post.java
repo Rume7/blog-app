@@ -47,24 +47,17 @@ public class Post {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, optional = false)
     private Author author;
 
     @JsonManagedReference
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<PostComment> allComments;
-
-    public Post(String title, String content) {
-        this.title = title != null ? title.trim() : null;
-        this.content = content != null ? content.trim() : null;
-        this.author = new Author();
-        this.allComments = new ArrayList<>();
-    }
+    private List<Comment> comments = new ArrayList<>();
 
     public Post(String title, String content, Author author) {
-        this(title, content);
-        this.author.setFirstName(author.getFirstName());
-        this.author.setLastName(author.getLastName());
+        this.title = title != null ? title.trim() : null;
+        this.content = content != null ? content.trim() : null;
+        this.author = new Author(author.getFirstName(), author.getLastName());
     }
 
     public void setTitle(String title) {

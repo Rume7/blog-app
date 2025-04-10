@@ -8,6 +8,7 @@ import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.controller.BlogController;
 import com.codehacks.blog.post.service.BlogService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,13 +51,18 @@ class BlogControllerTest {
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private Author author;
+
+    @BeforeEach
+    void setUp() {
+        author = new Author();
+        author.setFirstName("John");
+        author.setLastName("Doe");
+    }
+
     @Test
     void shouldReturnAllPosts() throws Exception {
         // Given
-        Author author = new Author();
-        author.setFirstName("Jane");
-        author.setLastName("Doe");
-
         Post post1 = new Post("Post 1", "Content 1", author);
         Post post2 = new Post("Post 2", "Content 2", author);
         Set<Post> posts = new HashSet<>(Arrays.asList(post1, post2));
@@ -106,7 +112,7 @@ class BlogControllerTest {
     void shouldReturnPostWhenPostExists() throws Exception {
         // Given
         Long postId = 1L;
-        Post post = new Post("Test Post", "This is the content", new Author("John", "Doe"));
+        Post post = new Post("Test Post", "This is the content", author);
         post.setId(postId);
 
         // When
@@ -193,7 +199,7 @@ class BlogControllerTest {
     @Test
     void shouldCreatePostSuccessfully() throws Exception, InvalidPostException {
         // Given
-        Post post = new Post("Valid Title", "This is a valid blog post content");
+        Post post = new Post("Valid Title", "This is a valid blog post content", author);
         post.setId(1L);  // Setting an ID as it will be returned by the service.
 
         // When
@@ -244,7 +250,7 @@ class BlogControllerTest {
     @Test
     void shouldReturnBadRequestWhenTitleIsNull() throws Exception, InvalidPostException {
         // Given
-        Post post = new Post(null, "Content");
+        Post post = new Post(null, "Content", author);
 
         // When
         when(blogService.createPost(post)).thenThrow(new InvalidPostException("Title cannot be null"));
@@ -259,7 +265,7 @@ class BlogControllerTest {
     @Test
     void shouldReturnBadRequestWhenContentIsNull() throws Exception, InvalidPostException {
         // Given
-        Post post = new Post("Valid Title", null);
+        Post post = new Post("Valid Title", null, author);
 
         // When
         when(blogService.createPost(post)).thenThrow(new InvalidPostException("Blog post cannot be empty"));
@@ -275,8 +281,8 @@ class BlogControllerTest {
     void shouldUpdatePostSuccessfully() throws Exception {
         // Given
         Long postId = 1L;
-        Post originalPost = new Post("Original Title", "Original content");
-        Post updatedPost = new Post("Updated Title", "Updated content");
+        Post originalPost = new Post("Original Title", "Original content", author);
+        Post updatedPost = new Post("Updated Title", "Updated content", author);
 
         // When
         when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
