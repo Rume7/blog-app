@@ -121,21 +121,22 @@ jobs:
         id: get_version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       
       # Build and push Docker image with version tag
-      - name: Log in to Docker Hub
+      - name: Log into Docker Hub
         env:
           DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          if [ $? -eq 0 ]; then
-            echo "✅ Successfully logged in to Docker Hub"
-          else
-            echo "❌ Failed to log in to Docker Hub"
+          echo "Attempting Docker login..."
+          if ! echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin; then
+            echo "❌ Docker login failed"
             exit 1
           fi
+          echo "✅ Successfully logged in to Docker Hub"
+
 
       - name: Pull latest image for cache (safe if it doesn't exist)
         run: docker pull rume7/blog-app:latest || true
@@ -143,22 +144,26 @@ jobs:
       - name: Build Docker image
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          VERSION: ${{ steps.get_version.outputs.version }
         run: |
           echo "Building Docker image..."
-          docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
-          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:${{ github.sha }}
-          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:latest
+          docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:$VERSION .
+          docker tag rume7/blog-app:$VERSION rume7/blog-app:${{ github.sha }}
+          docker tag rume7/blog-app:$VERSION rume7/blog-app:latest
 
       - name: Push Docker image
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          VERSION: ${{ steps.get_version.outputs.version }
         run: |
-          echo "Pushing Docker images..."
-          docker push rume7/blog-app:${{ env.VERSION }}
+          echo "Pushing Docker images with version: $VERSION"
+          docker push rume7/blog-app:$VERSION
           docker push rume7/blog-app:${{ github.sha }}
           docker push rume7/blog-app:latest
 
       - name: Push latest tag
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }
         run: |
-          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:latest
+          docker tag rume7/blog-app:$VERSION rume7/blog-app:latest
           docker push rume7/blog-app:latest
