@@ -54,8 +54,7 @@ class BlogServiceImplTest {
     @BeforeEach
     void setUp() {
         testAuthor = new Author("Test", "Author");
-        testPost = new Post("Test Title", "Test Content");
-        testPost.setAuthor(testAuthor);
+        testPost = new Post("Test Title", "Test Content", testAuthor);
     }
 
     @Test
@@ -114,7 +113,8 @@ class BlogServiceImplTest {
     void shouldUpdateExistingPost() {
         // Given
         Long postId = 1L;
-        Post updatedPost = new Post("Updated Title", "Updated Content");
+        Author author = new Author("Larry", "Sally");
+        Post updatedPost = new Post("Updated Title", "Updated Content", author);
 
         // When
         when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
@@ -136,7 +136,7 @@ class BlogServiceImplTest {
     void shouldThrowExceptionWhenUpdatingNonExistentPost() {
         // Given
         Long nonExistentId = 999L;
-        Post updatePost = new Post("Title", "Content");
+        Post updatePost = new Post("Title", "Content", testAuthor);
 
         // When
         PostNotFoundException exception = assertThrows(PostNotFoundException.class,
@@ -156,10 +156,11 @@ class BlogServiceImplTest {
     }
 
     private static Stream<Arguments> provideInvalidPosts() {
+        Author author = new Author();
         return Stream.of(
                 Arguments.of(null, 1L),
-                Arguments.of(new Post("", ""), 1L),
-                Arguments.of(new Post(null, null), 1L)
+                Arguments.of(new Post("", "", author), 1L),
+                Arguments.of(new Post(null, null, author), 1L)
         );
     }
 
@@ -213,8 +214,8 @@ class BlogServiceImplTest {
         // Given
         String searchTitle = "Test";
         List<Post> filteredPosts = Arrays.asList(
-                new Post("Test Post 1", "Content 1"),
-                new Post("Test Post 2", "Content 2")
+                new Post("Test Post 1", "Content 1", testAuthor),
+                new Post("Test Post 2", "Content 2", testAuthor)
         );
         when(blogRepository.findByTitleContainingIgnoreCase(searchTitle))
                 .thenReturn(filteredPosts);
@@ -234,7 +235,7 @@ class BlogServiceImplTest {
     @ValueSource(strings = {"", " ", "ab"})
     void shouldValidatePostTitleLength(String invalidTitle) {
         // Given
-        Post invalidPost = new Post(invalidTitle, "Valid Content");
+        Post invalidPost = new Post(invalidTitle, "Valid Content", testAuthor);
 
         // When
         InvalidPostException exception = assertThrows(InvalidPostException.class,
@@ -250,8 +251,8 @@ class BlogServiceImplTest {
         // Given
         Author authorName = new Author("Test", "Author");
         List<Post> authorPosts = Arrays.asList(
-                new Post("Post 1", "Content 1"),
-                new Post("Post 2", "Content 2")
+                new Post("Post 1", "Content 1", authorName),
+                new Post("Post 2", "Content 2", authorName)
         );
         when(blogRepository.findByAuthor(authorName)).thenReturn(authorPosts);
 

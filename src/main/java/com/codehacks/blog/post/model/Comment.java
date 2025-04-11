@@ -3,30 +3,38 @@ package com.codehacks.blog.post.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Comments")
+@Table(name = "comments")
+@NoArgsConstructor
+@AllArgsConstructor
 @Data
-public class PostComment {
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
-    @NotBlank(message = "Comment is required")
-    private String comment;
+    @Column(name = "content", nullable = false)
+    @NotBlank(message = "Content is required")
+    private String content;
 
-    @JsonBackReference
+    @Column(name = "author", nullable = false)
+    @NotBlank
+    private String author;
+
     @ManyToOne
     @JoinColumn(name = "post_id", nullable = false)
+    @JsonBackReference
     private Post post;
 
+    @Column(name = "created_at", nullable = false)
     @CreationTimestamp
-    private LocalDateTime createdOn;
-
+    private LocalDateTime createdAt;
 }
