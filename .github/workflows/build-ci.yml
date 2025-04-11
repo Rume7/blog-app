@@ -129,11 +129,17 @@ jobs:
       
 
       # Build and push Docker image with version tag
-      - name: Docker login
+      - name: Log in to Docker Hub
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        run: |
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "❌ Docker credentials are missing."
+            exit 1
+          fi
+          echo "✅ Docker credentials are set. Attempting login..."
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
       - name: Pull latest image for cache (safe if it doesn't exist)
         run: docker pull rume7/blog-app:latest || true
