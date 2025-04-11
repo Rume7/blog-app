@@ -6,6 +6,8 @@ import com.codehacks.blog.post.exception.InvalidCommentException;
 import com.codehacks.blog.post.exception.InvalidPostIdException;
 import com.codehacks.blog.post.exception.MissingAuthorException;
 import com.codehacks.blog.post.model.Comment;
+import com.codehacks.blog.post.model.Post;
+import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import com.codehacks.blog.post.dto.CommentDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,6 +31,9 @@ class CommentServiceTest {
     @Mock
     private CommentRepository commentRepository;
 
+    @Mock
+    private BlogRepository blogRepository;
+
     @InjectMocks
     private CommentServiceImpl commentService;
 
@@ -40,11 +46,16 @@ class CommentServiceTest {
     void testGetCommentById_ExistingComment() {
         // Given
         Long commentId = 1L;
+        Long postId = 1L;
+
+        Post post = new Post();
+        post.setId(postId);
+
         Comment comment = new Comment();
         comment.setId(commentId);
         comment.setContent("This is a great post!");
         comment.setAuthor("John Doe");
-        comment.setPostId(1L);
+        comment.setPost(post);
         comment.setCreatedAt(LocalDateTime.now());
 
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
@@ -103,6 +114,9 @@ class CommentServiceTest {
     void testCreateComment() {
         // Given
         Long postId = 1L;
+        Post post = new Post();
+        post.setId(postId);
+
         CommentDto commentDto = new CommentDto();
         commentDto.setContent("This is a great post!");
         commentDto.setAuthor("John Doe");
@@ -110,9 +124,10 @@ class CommentServiceTest {
         Comment expectedComment = new Comment();
         expectedComment.setContent(commentDto.getContent());
         expectedComment.setAuthor(commentDto.getAuthor());
-        expectedComment.setPostId(postId);
+        expectedComment.setPost(post);
         expectedComment.setCreatedAt(LocalDateTime.now());
 
+        when(blogRepository.findById(anyLong())).thenReturn(Optional.of(post));
         when(commentRepository.save(any(Comment.class))).thenReturn(expectedComment);
 
         // When

@@ -3,6 +3,8 @@ package com.codehacks.blog.post.service;
 import com.codehacks.blog.post.dto.CommentDto;
 import com.codehacks.blog.post.exception.*;
 import com.codehacks.blog.post.model.Comment;
+import com.codehacks.blog.post.model.Post;
+import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -19,16 +21,19 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
-    @Autowired
     private final CommentRepository commentRepository;
+    private final BlogRepository blogRepository;
 
     public CommentDto createComment(@Valid CommentDto commentDto, Long postId) {
         validateComment(commentDto, postId);
 
+        Post post = blogRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
         Comment comment = new Comment();
         comment.setContent(commentDto.getContent());
         comment.setAuthor(commentDto.getAuthor());
-        comment.setPostId(postId);
+        comment.setPost(post);
         comment.setCreatedAt(LocalDateTime.now());
         Comment savedComment = commentRepository.save(comment);
         return mapToDto(savedComment);
@@ -82,7 +87,7 @@ public class CommentServiceImpl implements CommentService {
         commentDto.setId(comment.getId());
         commentDto.setContent(comment.getContent());
         commentDto.setAuthor(comment.getAuthor());
-        commentDto.setPostId(comment.getPostId());
+        commentDto.setPostId(comment.getPost().getId());
         commentDto.setCreatedAt(comment.getCreatedAt());
         return commentDto;
     }

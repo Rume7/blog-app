@@ -1,5 +1,6 @@
 package com.codehacks.blog.post.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -28,9 +29,10 @@ public class Comment {
     @NotBlank
     private String author;
 
-    @Column(name = "post_id", nullable = false)
     @ManyToOne
-    private Long postId;
+    @JoinColumn(name = "post_id", nullable = false)
+    @JsonBackReference
+    private Post post;
 
     @Column(name = "created_at", nullable = false)
     @CreationTimestamp

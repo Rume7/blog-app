@@ -1,6 +1,7 @@
 package com.codehacks.blog.post.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ public class CommentDto {
     @NotBlank(message = "Author is required")
     private String author;
 
-    @NotBlank
+    @NotNull(message = "Post ID is required")
     private Long postId;
 
     private LocalDateTime createdAt;

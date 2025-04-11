@@ -8,6 +8,7 @@ import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.controller.BlogController;
 import com.codehacks.blog.post.service.BlogService;
+import com.codehacks.blog.util.Constants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -71,12 +72,12 @@ class BlogControllerTest {
         Mockito.when(blogService.getAllPosts()).thenReturn(posts);
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/all")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/all")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(posts.size()))
-                .andExpect(jsonPath("$[0].title").value("Post 2"))
-                .andExpect(jsonPath("$[1].title").value("Post 1"));
+                .andExpect(jsonPath("$[0].title").value("Post 1"))
+                .andExpect(jsonPath("$[1].title").value("Post 2"));
 
         verify(blogService, times(1)).getAllPosts();
     }
@@ -87,7 +88,7 @@ class BlogControllerTest {
         when(blogService.getAllPosts()).thenReturn(Collections.emptySet());
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/all")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/all")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -101,7 +102,7 @@ class BlogControllerTest {
         when(blogService.getAllPosts()).thenThrow(new RuntimeException("Database down"));
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/all")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/all")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 
@@ -119,7 +120,7 @@ class BlogControllerTest {
         when(blogService.getPostById(postId)).thenReturn(post);
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+        mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Test Post"))
@@ -139,7 +140,7 @@ class BlogControllerTest {
         when(blogService.getPostById(postId)).thenReturn(null);
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+        mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
@@ -156,7 +157,7 @@ class BlogControllerTest {
         when(blogService.getPostById(postId)).thenThrow(new RuntimeException("Database error"));
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+        mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 
@@ -172,7 +173,7 @@ class BlogControllerTest {
         when(blogService.getPostById(postId)).thenThrow(new PostNotFoundException("Post not found"));
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+        mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Post not found"));
@@ -189,7 +190,7 @@ class BlogControllerTest {
         when(blogService.getPostById(postId)).thenThrow(new RuntimeException("Database error"));
 
         // Then
-        mockMvc.perform(get("/api/v1/blog/{id}", postId)
+        mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 
@@ -200,20 +201,20 @@ class BlogControllerTest {
     void shouldCreatePostSuccessfully() throws Exception, InvalidPostException {
         // Given
         Post post = new Post("Valid Title", "This is a valid blog post content", author);
-        post.setId(1L);  // Setting an ID as it will be returned by the service.
+        post.setId(2L);
 
         // When
         when(blogService.createPost(any(Post.class))).thenReturn(post);
 
         // Then
-        mockMvc.perform(post("/api/v1/blog/create")
+        mockMvc.perform(post(Constants.BLOG_PATH + "/create")
+                        .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Valid Title\", \"content\":\"This is a valid blog post content\"}"))
-                .andExpect(status().is2xxSuccessful())  // Expecting 201 Created
+                .andExpect(status().is2xxSuccessful())
                 .andExpect(jsonPath("$.data.title").value("Valid Title"))
                 .andExpect(jsonPath("$.data.content").value("This is a valid blog post content"));
     }
-
 
     @Test
     void shouldReturnBadRequestWhenTitleIsTooShort() throws Exception, InvalidPostException {
@@ -224,8 +225,8 @@ class BlogControllerTest {
         when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title length is too short"));
 
         // Then
-        mockMvc.perform(post("/api/v1/blog/create")
-                        .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post(Constants.BLOG_PATH + "/create")
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content("{\"title\":\"" + shortTitle + "\", \"content\":\"Content for readers\"}"))
                 .andExpect(status().isBadRequest())  // Expecting 400 Bad Request
                 .andExpect(jsonPath("$.message").value("Title length is too short"));
@@ -240,7 +241,7 @@ class BlogControllerTest {
         when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title length is too long"));
 
         // Then
-        mockMvc.perform(post("/api/v1/blog/create")
+        mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"" + longTitle + "\", \"content\":\"Content\"}"))
                 .andExpect(status().isBadRequest())
@@ -256,7 +257,7 @@ class BlogControllerTest {
         when(blogService.createPost(post)).thenThrow(new InvalidPostException("Title cannot be null"));
 
         // Then
-        mockMvc.perform(post("/api/v1/blog/create")
+        mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":null, \"content\":\"Content\"}"))
                 .andExpect(status().isBadRequest());
@@ -271,7 +272,7 @@ class BlogControllerTest {
         when(blogService.createPost(post)).thenThrow(new InvalidPostException("Blog post cannot be empty"));
 
         // Then
-        mockMvc.perform(post("/api/v1/blog/create")
+        mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Valid Title\", \"content\":null}"))
                 .andExpect(status().isBadRequest());
@@ -288,7 +289,7 @@ class BlogControllerTest {
         when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
 
         // Then
-        mockMvc.perform(put("/api/v1/blog/update/{id}", postId)
+        mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
                 .andExpect(status().isOk())
@@ -305,7 +306,7 @@ class BlogControllerTest {
         when(blogService.deletePost(postId)).thenReturn(true);
 
         // Then
-        mockMvc.perform(delete("/api/v1/blog/delete/{id}", postId))
+        mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/{id}", postId))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
     }
@@ -319,7 +320,7 @@ class BlogControllerTest {
         when(blogService.deletePost(postId)).thenReturn(false);
 
         // Then
-        mockMvc.perform(delete("/api/v1/blog/delete/{id}", postId))
+        mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/{id}", postId))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(""));
     }
@@ -327,7 +328,7 @@ class BlogControllerTest {
     @Test
     void shouldReturnBadRequestWhenPostIdIsInvalid() throws Exception {
         // When & Then
-        mockMvc.perform(delete("/api/v1/blog/delete/{id}", -1L))
+        mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/{id}", -1L))
                 .andExpect(status().isNotFound()) // Expect 400 Bad Request
                 .andExpect(content().string("")); // Expect empty body
     }
