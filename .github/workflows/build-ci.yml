@@ -100,6 +100,23 @@ jobs:
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Using version: $VERSION"
+
+      - name: Build JAR with version
+        run: |
+          echo "Building JAR with version: $VERSION"
+          mvn clean package -DskipTests
+          ls -la target/
+
+      - name: Verify JAR File
+        run: |
+          echo "Verifying JAR file with version: $VERSION"
+          if [ ! -f "target/blog-app-$VERSION.jar" ]; then
+            echo "❌ JAR file not found!"
+            ls -la target/
+            exit 1
+          fi
+          echo "✅ Found JAR file: target/blog-app-$VERSION.jar"
 
       - name: Verify PostgreSQL Connection
         run: |
@@ -126,6 +143,10 @@ jobs:
           # Build the image
           docker buildx build \
             --platform linux/amd64 \
+            --build-arg VERSION=$VERSION \
+            --label org.opencontainers.image.version=$VERSION \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
             --cache-from=type=registry,ref=rume7/blog-app:latest \
             --cache-to=type=inline \
             -t rume7/blog-app:$VERSION \
@@ -134,4 +155,4 @@ jobs:
             --push \
             .
           
-            echo "✅ Successfully built and pushed Docker images"
+          echo "✅ Successfully built and pushed Docker images"
