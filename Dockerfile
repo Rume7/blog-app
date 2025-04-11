@@ -9,6 +9,7 @@ COPY pom.xml .
 COPY src ./src
 
 # Package the application (this runs `mvn clean package` to build the jar)
+ARG VERSION
 RUN mvn clean package -DskipTests
 
 # The second stage: use a smaller JRE image for the runtime environment
@@ -22,10 +23,10 @@ ARG VERSION
 
 # Copy the jar file from the build image to the runtime image
 # Use the version in the filename dynamically
-COPY --from=build /app/target/blog-app-${VERSION}.jar /app/blog-app-${VERSION}.jar
+COPY --from=build /app/target/blog-app-${VERSION}.jar /app/blog-app.jar
 
 # Expose the application port (default for Spring Boot is 8080)
 EXPOSE 8080
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "/app/blog-app-${VERSION}.jar"]
+ENTRYPOINT ["java", "-jar", "/app/blog-app.jar"]
