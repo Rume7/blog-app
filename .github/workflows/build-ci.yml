@@ -50,7 +50,6 @@ jobs:
 
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
       TESTCONTAINERS_CHECKS_DISABLE: true # Disables unnecessary startup checks
       TESTCONTAINERS_REUSE_ENABLE: true   # Enables Testcontainers reuse
@@ -85,12 +84,6 @@ jobs:
       - name: Check Docker Info
         run: docker info
 
-      - name: Login to Docker Hub
-        run: |
-          echo "Logging in to Docker Hub..."
-          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          echo "✅ Successfully logged in to Docker Hub"
-
       - name: Verify PostgreSQL Connection
         run: |
           sudo apt-get install -y postgresql-client
@@ -111,10 +104,10 @@ jobs:
 
       - name: Run Only SecurityConfigTest
         run: mvn -Dtest=SecurityConfigTest test -X
-
+      
       #      - name: Build and Test with Single Thread
       #        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true -DforkCount=1
-
+      
       #      - name: SonarQube Scan
       #        env:
       #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -123,7 +116,28 @@ jobs:
       #          -Dsonar.host.url=https://your-sonarqube-server.com \
       #          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
-      - name: Build Docker image
-        if: success()
-        run: docker build --cache-from=blog-app:latest -t blog-app:${{ github.sha }} .
-      
+      - name: Get version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # Build and push Docker image with version tag
+      - name: Build and push Docker image with version
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          
+          docker pull rume7/blog-app:latest || true
+          
+          docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
+          
+          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:${{ github.sha }}
+          
+          docker push rume7/blog-app:${{ env.VERSION}}
+          docker push rume7/blog-app:${{ github.sha }}
+
+      # Optionally, you can push the image as the 'latest' version after successful deployment, to always have a reference to the most recent build.
+      - name: Tag and push as latest version
+        run: |
+          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:latest
+          docker push rume7/blog-app:latest
