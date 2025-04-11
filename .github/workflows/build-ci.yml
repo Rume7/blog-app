@@ -49,8 +49,8 @@ jobs:
       fail-fast: false
 
     env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_USERNAME: ${{ BlogApp_Secret.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ BlogApp_Secret.DOCKER_PASSWORD }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
       TESTCONTAINERS_CHECKS_DISABLE: true # Disables unnecessary startup checks
       TESTCONTAINERS_REUSE_ENABLE: true   # Enables Testcontainers reuse
@@ -122,29 +122,12 @@ jobs:
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Check if secrets are set (for debug)
-        run: |
-          echo "DOCKER_USERNAME length: ${#DOCKER_USERNAME}"
-          echo "DOCKER_PASSWORD length: ${#DOCKER_PASSWORD}"
-          if [ -z "$DOCKER_USERNAME" ]; then
-            echo "❌ DOCKER_USERNAME is empty"
-            exit 1
-          else
-            echo "✅ DOCKER_USERNAME is set"
-          fi
-          if [ -z "$DOCKER_PASSWORD" ]; then
-            echo "❌ DOCKER_PASSWORD is empty"
-            exit 1
-          else
-            echo "✅ DOCKER_PASSWORD is set"
-          fi
       
       # Build and push Docker image with version tag
       - name: Log in to Docker Hub
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ BlogApp_Secret.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ BlogApp_Secret.DOCKER_PASSWORD }}
         run: |
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
           if [ $? -eq 0 ]; then
@@ -159,7 +142,7 @@ jobs:
 
       - name: Build Docker image
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_USERNAME: ${{ BlogApp_Secret.DOCKER_USERNAME }}
         run: |
           echo "Building Docker image..."
           docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
@@ -168,7 +151,7 @@ jobs:
 
       - name: Push Docker image
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_USERNAME: ${{ BlogApp_Secret.DOCKER_USERNAME }}
         run: |
           echo "Pushing Docker images..."
           docker push rume7/blog-app:${{ env.VERSION }}
