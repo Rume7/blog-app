@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
 
     env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_USERNAME: ${{ SECRETS.DOCKER_USERNAME }}
       TESTCONTAINERS_RYUK_DISABLED: true  # Fix for Testcontainers in CI
       TESTCONTAINERS_CHECKS_DISABLE: true # Disables unnecessary startup checks
       TESTCONTAINERS_REUSE_ENABLE: true   # Enables Testcontainers reuse
@@ -124,13 +124,13 @@ jobs:
 
       - name: Check if secrets are set (for debug)
         run: |
-          if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then echo "❌ DOCKER_USERNAME is NOT set"; else echo "✅ DOCKER_USERNAME is set"; fi
-          if [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then echo "❌ DOCKER_PASSWORD is NOT set"; else echo "✅ DOCKER_PASSWORD is set"; fi
+          if [ -z "${{ SECRETS.DOCKER_USERNAME }}" ]; then echo "❌ DOCKER_USERNAME is NOT set"; else echo "✅ DOCKER_USERNAME is set"; fi
+          if [ -z "${{ SECRETS.DOCKER_PASSWORD }}" ]; then echo "❌ DOCKER_PASSWORD is NOT set"; else echo "✅ DOCKER_PASSWORD is set"; fi
       
 
       # Build and push Docker image with version tag
       - name: Docker login
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ SECRETS.DOCKER_PASSWORD }}" | docker login -u "${{ SECRETS.DOCKER_USERNAME }}" --password-stdin
 
       - name: Pull latest image for cache (safe if it doesn't exist)
         run: docker pull rume7/blog-app:latest || true
