@@ -86,15 +86,15 @@ jobs:
 
       - name: Verify PostgreSQL Connection
         run: |
-            sudo apt-get install -y postgresql-client
-            for i in {1..10}; do
-              if PGPASSWORD=test psql -h localhost -U test -d blog_test_db -c "SELECT version();" > /dev/null 2>&1; then
-                echo "✅ PostgreSQL is ready!"
-                break
-              fi
-              echo "⏳ Waiting for PostgreSQL to be ready... ($i/10)"
-              sleep 5
-            done
+          sudo apt-get install -y postgresql-client
+          for i in {1..10}; do
+            if PGPASSWORD=test psql -h localhost -U test -d blog_test_db -c "SELECT version();" > /dev/null 2>&1; then
+              echo "✅ PostgreSQL is ready!"
+              break
+            fi
+            echo "⏳ Waiting for PostgreSQL to be ready... ($i/10)"
+            sleep 5
+          done
 
       - name: Run Tests with Debug Logging
         run: mvn clean verify -X -Dspring.testcontainers.reuse.enable=true
@@ -104,19 +104,40 @@ jobs:
 
       - name: Run Only SecurityConfigTest
         run: mvn -Dtest=SecurityConfigTest test -X
-
-#      - name: Build and Test with Single Thread
-#        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true -DforkCount=1
-
-#      - name: SonarQube Scan
-#        env:
-#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#        run: mvn sonar:sonar \
-#          -Dsonar.projectKey=my_project_key \
-#          -Dsonar.host.url=https://your-sonarqube-server.com \
-#          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-      - name: Build Docker image
-        if: success()
-        run: docker build --cache-from=blog-app:latest -t blog-app:${{ github.sha }} .
       
+      #      - name: Build and Test with Single Thread
+      #        run: mvn clean verify -Dspring.testcontainers.reuse.enable=true -DforkCount=1
+      
+      #      - name: SonarQube Scan
+      #        env:
+      #          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #        run: mvn sonar:sonar \
+      #          -Dsonar.projectKey=my_project_key \
+      #          -Dsonar.host.url=https://your-sonarqube-server.com \
+      #          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Get version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # Build and push Docker image with version tag
+      - name: Build and push Docker image with version
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          
+          docker pull rume7/blog-app:latest || true
+          
+          docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
+          
+          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:${{ github.sha }}
+          
+          docker push rume7/blog-app:${{ env.VERSION}}
+          docker push rume7/blog-app:${{ github.sha }}
+
+      # Optionally, you can push the image as the 'latest' version after successful deployment, to always have a reference to the most recent build.
+      - name: Tag and push as latest version
+        run: |
+          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:latest
+          docker push rume7/blog-app:latest
