@@ -125,16 +125,16 @@ jobs:
       # Build and push Docker image with version tag
       - name: Build and push Docker image with version
         run: |
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-          
-          docker pull rume7/blog-app:latest || true
-          
-          docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
-          
-          docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:${{ github.sha }}
-          
-          docker push rume7/blog-app:${{ env.VERSION}}
-          docker push rume7/blog-app:${{ github.sha }}
+          #          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+               
+               docker pull rume7/blog-app:latest || true
+               
+               docker build --cache-from=rume7/blog-app:latest -t rume7/blog-app:${{ env.VERSION }} .
+               
+               docker tag rume7/blog-app:${{ env.VERSION }} rume7/blog-app:${{ github.sha }}
+               
+               docker push rume7/blog-app:${{ env.VERSION}}
+               docker push rume7/blog-app:${{ github.sha }}
 
       # Optionally, you can push the image as the 'latest' version after successful deployment, to always have a reference to the most recent build.
       - name: Tag and push as latest version
