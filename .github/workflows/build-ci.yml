@@ -125,17 +125,19 @@ jobs:
 
       - name: Check if secrets are set (for debug)
         run: |
-          if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then 
-            echo "❌ DOCKER_USERNAME is NOT set"; 
+          echo "DOCKER_USERNAME length: ${#DOCKER_USERNAME}"
+          echo "DOCKER_PASSWORD length: ${#DOCKER_PASSWORD}"
+          if [ -z "$DOCKER_USERNAME" ]; then
+            echo "❌ DOCKER_USERNAME is empty"
             exit 1
-          else 
-            echo "✅ DOCKER_USERNAME is set"; 
+          else
+            echo "✅ DOCKER_USERNAME is set"
           fi
-          if [ -z "${{ secrets.DOCKER_PASSWORD }}" ]; then 
-            echo "❌ DOCKER_PASSWORD is NOT set"; 
+          if [ -z "$DOCKER_PASSWORD" ]; then
+            echo "❌ DOCKER_PASSWORD is empty"
             exit 1
-          else 
-            echo "✅ DOCKER_PASSWORD is set"; 
+          else
+            echo "✅ DOCKER_PASSWORD is set"
           fi
       
       # Build and push Docker image with version tag
@@ -144,12 +146,13 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          echo "Attempting Docker login..."
-          if ! echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin; then
-            echo "❌ Docker login failed"
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully logged in to Docker Hub"
+          else
+            echo "❌ Failed to log in to Docker Hub"
             exit 1
           fi
-          echo "✅ Successfully logged in to Docker Hub"
 
       - name: Pull latest image for cache (safe if it doesn't exist)
         run: docker pull rume7/blog-app:latest || true
