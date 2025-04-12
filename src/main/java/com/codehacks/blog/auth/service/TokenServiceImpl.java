@@ -44,6 +44,7 @@ public class TokenServiceImpl implements TokenService {
         String token = Jwts.builder()
                 .setSubject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(this.signingKey, SignatureAlgorithm.HS512)
