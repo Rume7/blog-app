@@ -2,6 +2,7 @@ package com.codehacks.blog.post.controller;
 
 import com.codehacks.blog.post.dto.CommentDto;
 import com.codehacks.blog.post.service.CommentService;
+import com.codehacks.blog.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/comments")
+@RequestMapping(Constants.COMMENT_PATH)
 public class CommentController {
 
     @Autowired
