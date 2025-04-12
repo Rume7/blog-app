@@ -1,4 +1,4 @@
-name: Smart Version Bump (Maven)
+name: Smart Version Bump
 
 on:
   push:
