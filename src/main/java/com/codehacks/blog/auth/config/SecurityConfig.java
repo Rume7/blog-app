@@ -1,6 +1,7 @@
 package com.codehacks.blog.auth.config;
 
 import com.codehacks.blog.auth.service.UserDetailsServiceImpl;
+import com.codehacks.blog.util.Constants;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,15 +61,18 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> {
                     auth
-                            .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
-                            .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                            .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/register").permitAll()
+                            .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/login").permitAll()
                             .requestMatchers("/error").permitAll()
-                            .requestMatchers(HttpMethod.PUT, "/api/v1/auth/change-role").hasAuthority("ADMIN")
+                            .requestMatchers(HttpMethod.PUT, Constants.AUTH_PATH + "/change-role").hasAuthority("ADMIN")
                             .requestMatchers(HttpMethod.GET, "/api/v1/users").hasAuthority("ADMIN")
-                            .requestMatchers("/api/v1/auth/logout").authenticated()
-                            .requestMatchers(HttpMethod.GET, "/api/v1/blog/all").authenticated()
-                            .requestMatchers(HttpMethod.GET, "/api/v1/blog/{id}").authenticated()
-                            .requestMatchers(HttpMethod.POST, "/api/v1/blog/create").hasAnyAuthority("ROLE_ADMIN", "ROLE_AUTHOR")
+                            .requestMatchers(Constants.AUTH_PATH + "/logout").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/all").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/{id}").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/previews").permitAll()
+                            .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyAuthority("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.DELETE, Constants.BLOG_PATH + "/delete/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
                             .anyRequest().authenticated();
                     log.debug("Configured authorization rules");
                 })
