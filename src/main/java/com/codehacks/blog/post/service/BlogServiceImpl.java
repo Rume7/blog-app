@@ -5,7 +5,7 @@ import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.auth.repository.AuthorRepository;
+import com.codehacks.blog.post.repository.AuthorRepository;
 import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.util.Constants;
 import jakarta.transaction.Transactional;
@@ -53,8 +53,8 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional
     public Post createPost(Post post) throws InvalidPostException {
-        if (post.getTitle() == null) {
-            throw new InvalidPostException("Title cannot be null");
+        if (post.getTitle() == null || post.getTitle().trim().isEmpty()) {
+            throw new InvalidPostException("Title cannot be null or empty or only whitespace");
         }
         if (post.getTitle().trim().length() < Constants.MIN_TITLE_LENGTH) {
             throw new InvalidPostException("Title length is too short");
@@ -62,8 +62,17 @@ public class BlogServiceImpl implements BlogService {
         if (post.getTitle().trim().length() > Constants.MAX_TITLE_LENGTH) {
             throw new InvalidPostException("Title length is too long");
         }
-        Author savedAuthor = authorRepository.save(post.getAuthor());
-        post.setAuthor(savedAuthor);
+
+        post.setTitle(post.getTitle().trim());
+
+        Author existingAuthor = authorRepository.findByEmail(post.getAuthor().getEmailAddress());
+        if (existingAuthor != null) {
+            post.setAuthor(existingAuthor);
+        } else {
+            Author savedAuthor = authorRepository.save(post.getAuthor());
+            post.setAuthor(savedAuthor);
+        }
+
         return blogRepository.save(post);
     }
 

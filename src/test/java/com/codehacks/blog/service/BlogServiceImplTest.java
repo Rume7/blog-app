@@ -4,7 +4,7 @@ import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.auth.repository.AuthorRepository;
+import com.codehacks.blog.post.repository.AuthorRepository;
 import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.service.BlogServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -232,8 +231,8 @@ class BlogServiceImplTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", " ", "ab"})
-    void shouldValidatePostTitleLength(String invalidTitle) {
+    @MethodSource("provideInvalidPostTitles")
+    void shouldValidatePostTitleLength(String invalidTitle, String message) {
         // Given
         Post invalidPost = new Post(invalidTitle, "Valid Content", testAuthor);
 
@@ -242,8 +241,16 @@ class BlogServiceImplTest {
                 () -> blogService.createPost(invalidPost));
 
         // Then
-        assertEquals("Title length is too short", exception.getMessage());
+        assertEquals(message, exception.getMessage());
         verify(blogRepository, never()).save(any());
+    }
+
+    private static Stream<Arguments> provideInvalidPostTitles() {
+        return Stream.of(
+                Arguments.of("", "Title cannot be null or empty or only whitespace"),
+                Arguments.of(" ", "Title cannot be null or empty or only whitespace"),
+                Arguments.of("ab", "Title length is too short")
+        );
     }
 
     @Test

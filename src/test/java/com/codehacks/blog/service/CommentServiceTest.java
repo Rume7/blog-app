@@ -1,4 +1,4 @@
-package com.codehacks.blog.post.service;
+package com.codehacks.blog.service;
 
 import com.codehacks.blog.post.exception.CommentAlreadyExistsException;
 import com.codehacks.blog.post.exception.CommentNotFoundException;
@@ -10,6 +10,7 @@ import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import com.codehacks.blog.post.dto.CommentDto;
+import com.codehacks.blog.post.service.CommentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
