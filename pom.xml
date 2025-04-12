@@ -212,7 +212,7 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <finalName>blog-app-1.0</finalName>
+                    <finalName>blog-app-${project.version}</finalName>
                 </configuration>
             </plugin>
             <plugin>

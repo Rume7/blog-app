@@ -1,0 +1,79 @@
+name: Smart Version Bump (Maven)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Get last commit message
+        id: last_commit
+        run: |
+          msg=$(git log -1 --pretty=%B)
+          echo "Commit message: $msg"
+          echo "msg=$msg" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump type
+        id: bump_type
+        run: |
+          msg="${{ steps.last_commit.outputs.msg }}"
+          if echo "$msg" | grep -q "#major"; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif echo "$msg" | grep -q "#minor"; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get current version
+        id: get_version
+        run: |
+          version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current version: $version"
+          IFS='.' read -r major minor patch <<< "${version}.0.0"
+          bump_type="${{ steps.bump_type.outputs.type }}"
+
+          if [ "$bump_type" = "major" ]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [ "$bump_type" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          new_version="$major.$minor.$patch"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Update pom.xml version
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.get_version.outputs.new_version }} -DgenerateBackupPoms=false
+
+      - name: Commit and push new version
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit -m "chore: bump version to ${{ steps.get_version.outputs.new_version }}"
+          git push
+
+      - name: Create Git tag
+        run: |
+          git tag v${{ steps.get_version.outputs.new_version }}
+          git push origin v${{ steps.get_version.outputs.new_version }}

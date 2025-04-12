@@ -1,12 +1,32 @@
-# Use a specific version of the OpenJDK image
-FROM openjdk:17-alpine
-RUN apk add --no-cache curl
+# Use the official Maven image to build the application
+FROM maven:3.8.6-eclipse-temurin-17 AS build
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the JAR file into the container
-COPY target/blog-app-1.0.jar app.jar
+# Copy the pom.xml and the source code into the container
+COPY pom.xml .
+COPY src ./src
 
-# Set the entry point for the container
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Package the application (this runs `mvn clean package` to build the jar)
+ARG VERSION
+RUN mvn clean package -DskipTests
+
+# The second stage: use a smaller JRE image for the runtime environment
+FROM openjdk:17-jdk-slim
+
+# Set the working directory for the runtime
+WORKDIR /app
+
+# Define the version argument
+ARG VERSION
+
+# Copy the jar file from the build image to the runtime image
+# Use the version in the filename dynamically
+COPY --from=build /app/target/blog-app-${VERSION}.jar /app/blog-app.jar
+
+# Expose the application port (default for Spring Boot is 8080)
+EXPOSE 8080
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "/app/blog-app.jar"]
