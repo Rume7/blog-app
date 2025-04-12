@@ -23,7 +23,8 @@ ARG VERSION
 
 # Copy the jar file from the build image to the runtime image
 # Use the version in the filename dynamically
-COPY --from=build /app/target/blog-app-${VERSION}.jar /app/blog-app.jar
+#COPY --from=build /app/target/blog-app-${VERSION}.jar /app/blog-app.jar
+COPY --from=build /app/target/*.jar /app/blog-app.jar
 
 # Expose the application port (default for Spring Boot is 8080)
 EXPOSE 8080
