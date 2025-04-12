@@ -27,7 +27,7 @@ public class Author {
     private String lastName;
 
     @Email
-    private String emailAddress;
+    private String email;
 
     public Author(String firstName, String lastName) {
         this.firstName = firstName;

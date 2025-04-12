@@ -33,13 +33,13 @@ public class BlogController {
 
     private final BlogService blogService;
 
-    @GetMapping(value = "/all", produces = "application/json")
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Set<Post>> getAllPosts() {
         Set<Post> allPosts = blogService.getAllPosts();
         return ResponseEntity.ok(allPosts);
     }
 
-    @GetMapping(value = "/{id}", produces = "application/json")
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Post> getPostById(@Valid @Positive @PathVariable Long id) {
         Post post = blogService.getPostById(id);
         if (post != null) {
@@ -59,7 +59,7 @@ public class BlogController {
         }
     }
 
-    @PutMapping(value = "/update/{id}", produces = "application/json")
+    @PutMapping(value = "/update/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id, @Valid @RequestBody Post post) {
         log.info("Updated Post: {}", post);
         Post updatedPost = blogService.updatePost(post, id);
@@ -69,7 +69,7 @@ public class BlogController {
         return ResponseEntity.ok(ApiResponse.success(updatedPost));
     }
 
-    @DeleteMapping(value = "/delete/{id}", produces = "application/json")
+    @DeleteMapping(value = "/delete/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> deletePost(@PathVariable Long id) throws InvalidPostException {
         boolean deletePost = blogService.deletePost(id);
         if (deletePost) {
@@ -78,7 +78,7 @@ public class BlogController {
         return ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/previews")
+    @GetMapping(value = "/previews", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<BlogPreviewDTO>> getBlogPreviews() {
         List<BlogPreviewDTO> previews = blogService.getBlogPreviews();
         return ResponseEntity.ok(previews);

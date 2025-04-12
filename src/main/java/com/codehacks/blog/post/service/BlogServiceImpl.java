@@ -65,7 +65,7 @@ public class BlogServiceImpl implements BlogService {
 
         post.setTitle(post.getTitle().trim());
 
-        Author existingAuthor = authorRepository.findByEmail(post.getAuthor().getEmailAddress());
+        Author existingAuthor = authorRepository.findByEmail(post.getAuthor().getEmail());
         if (existingAuthor != null) {
             post.setAuthor(existingAuthor);
         } else {

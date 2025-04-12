@@ -68,7 +68,7 @@ public class SecurityConfig {
                             .requestMatchers("/api/v1/auth/logout").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/v1/blog/all").authenticated()
                             .requestMatchers(HttpMethod.GET, "/api/v1/blog/{id}").authenticated()
-                            .requestMatchers(HttpMethod.POST, "/api/v1/blog/create").hasAnyAuthority("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.POST, "/api/v1/blog/create").hasAnyAuthority("ROLE_ADMIN", "ROLE_AUTHOR")
                             .anyRequest().authenticated();
                     log.debug("Configured authorization rules");
                 })

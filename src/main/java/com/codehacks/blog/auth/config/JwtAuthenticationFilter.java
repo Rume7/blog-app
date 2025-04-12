@@ -3,7 +3,6 @@ package com.codehacks.blog.auth.config;
 import com.codehacks.blog.auth.service.CustomUserDetailsService;
 import com.codehacks.blog.auth.service.TokenServiceImpl;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+                                    @NonNull FilterChain filterChain) throws IOException {
 
         try {
             String requestURI = request.getRequestURI();
@@ -63,15 +62,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.debug("Validating JWT token");
 
             if (tokenService.validateToken(jwt)) {
-                Long userId = tokenService.getUserIdFromToken(jwt);
                 String userEmailFromToken = tokenService.getUserEmailFromToken(jwt);
                 log.debug("Token valid for user: {}", userEmailFromToken);
 
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userId.toString());
+                UserDetails userDetails = this.userDetailsService.loadUserByEmail(userEmailFromToken);
                 log.debug("User details loaded: {}", userDetails.getUsername());
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
+                        userEmailFromToken,
                         null,
                         userDetails.getAuthorities()
                 );
