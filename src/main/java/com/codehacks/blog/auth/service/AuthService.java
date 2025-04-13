@@ -136,7 +136,9 @@ public class AuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserAccountException("User account not found"));
 
-        userRepository.delete(user);
+        if (user.getRole().equals(Role.ADMIN)) {
+            userRepository.delete(user);
+        }
     }
 
     public void logAdminAccess(String email, String ipAddress) {

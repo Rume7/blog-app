@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -53,7 +54,7 @@ public class AuthController {
         this.authenticationManager = authenticationManager;
     }
 
-    @PostMapping(value = "/register", produces = "application/json")
+    @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Register new user")
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<UserDTO>> register(@RequestBody @Valid RegisterRequest request) {
@@ -62,7 +63,7 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", savedUser));
     }
 
-    @PostMapping(value = "/login", produces = "application/json")
+    @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Login user")
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -97,7 +98,7 @@ public class AuthController {
         }
     }
 
-    @PutMapping(value = "/change-password", produces = "application/json")
+    @PutMapping(value = "/change-password", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
     public ResponseEntity<ApiResponse<String>> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
         authService.changePassword(request.username(), request.currentPassword(), request.newPassword());
@@ -105,7 +106,7 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Password changed successfully", null));
     }
 
-    @PutMapping(value = "/change-role", produces = "application/json")
+    @PutMapping(value = "/change-role", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> changeUserRole(@Valid @RequestBody RoleChangeRequest request) {
         User changeUserRole = authService.changeUserRole(request.username(), request.userRole());
@@ -114,19 +115,26 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Role changed successfully", changeUserRole.getRole().toString()));
     }
 
-    @DeleteMapping(value = "/delete-account", produces = "application/json")
+    @DeleteMapping(value = "/delete-account", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteAccount(@RequestParam String username,
-                                                             @AuthenticationPrincipal UserDetails userDetails) {
-        if (!authService.canUserDeleteAccount(username, userDetails)) {
-            log.warn("Unauthorized delete attempt for account: {}", username);
+                                                             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        // Allow only admins or users deleting their own account
+        boolean isSelfDelete = currentUser.getUsername().equals(username);
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isSelfDelete && !isAdmin) {
+            log.warn("Unauthorized delete attempt by '{}' for account '{}'", currentUser.getUsername(), username);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Not authorized to delete this account", null));
         }
+        
         authService.deleteUserAccount(username);
-        log.info("Account deleted: {}", username);
-        return ResponseEntity.noContent().build();
+        log.info("Account deleted by '{}': {}", currentUser.getUsername(), username);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Account deleted successfully", null));
     }
+
 
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")

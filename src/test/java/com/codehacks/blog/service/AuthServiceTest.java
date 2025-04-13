@@ -173,6 +173,7 @@ class AuthServiceTest {
     @Test
     void deleteUserAccount_whenUserExists_thenDeleteAccount() {
         // Given
+        user.setRole(Role.ADMIN);
         when(userRepository.findByUsername(user.getUsername())).thenReturn(Optional.of(user));
 
         // When
