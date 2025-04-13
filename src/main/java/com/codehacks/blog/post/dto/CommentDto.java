@@ -18,9 +18,6 @@ public class CommentDto {
     @NotBlank(message = "Content is required")
     private String content;
 
-    @NotBlank(message = "Author is required")
-    private String author;
-
     @NotNull(message = "Post ID is required")
     private Long postId;
 

@@ -1,10 +1,12 @@
 package com.codehacks.blog.service;
 
-import com.codehacks.blog.post.exception.CommentAlreadyExistsException;
+import com.codehacks.blog.auth.exception.UserAccountException;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.auth.repository.UserRepository;
 import com.codehacks.blog.post.exception.CommentNotFoundException;
 import com.codehacks.blog.post.exception.InvalidCommentException;
 import com.codehacks.blog.post.exception.InvalidPostIdException;
-import com.codehacks.blog.post.exception.MissingAuthorException;
+import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Comment;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.BlogRepository;
@@ -16,10 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +40,9 @@ class CommentServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private BlogRepository blogRepository;
@@ -69,7 +81,6 @@ class CommentServiceTest {
                 () -> assertNotNull(result),
                 () -> assertEquals(commentId, result.getId(), "Id should be equal"),
                 () -> assertEquals("This is a great post!", result.getContent(), "Content should match"),
-                () -> assertEquals("John Doe", result.getAuthor(), "Author should match"),
                 () -> assertEquals(1L, result.getPostId(), "Post ID should match")
         );
     }
@@ -112,131 +123,170 @@ class CommentServiceTest {
     }
 
     @Test
-    void testCreateComment() {
+    void addCommentToPost_shouldSaveCommentAndReturnDto() {
         // Given
         Long postId = 1L;
-        Post post = new Post();
-        post.setId(postId);
 
-        CommentDto commentDto = new CommentDto();
-        commentDto.setContent("This is a great post!");
-        commentDto.setAuthor("John Doe");
+        CommentDto request = new CommentDto();
+        request.setContent("This is a test comment");
 
-        Comment expectedComment = new Comment();
-        expectedComment.setContent(commentDto.getContent());
-        expectedComment.setAuthor(commentDto.getAuthor());
-        expectedComment.setPost(post);
-        expectedComment.setCreatedAt(LocalDateTime.now());
+        User mockUser = new User();
+        mockUser.setUsername("testUser");
+        mockUser.setEmail("user@example.com");
 
-        when(blogRepository.findById(anyLong())).thenReturn(Optional.of(post));
-        when(commentRepository.save(any(Comment.class))).thenReturn(expectedComment);
+        Post mockPost = new Post();
+        mockPost.setId(postId);
+        mockPost.setTitle("Sample Post");
 
-        // When
-        CommentDto result = commentService.createComment(commentDto, postId);
+        Comment savedComment = new Comment();
+        savedComment.setId(20L);
+        savedComment.setContent("This is a test comment");
+        savedComment.setAuthor("testUser");
+        savedComment.setPost(mockPost);
+        savedComment.setPost(mockPost);
+        savedComment.setCreatedAt(LocalDateTime.now());
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(mockUser));
+        when(blogRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+        when(commentRepository.save(any(Comment.class))).thenReturn(savedComment);
+
+        // Act
+        CommentDto result = commentService.addCommentToPost(postId, request);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("This is a test comment", result.getContent());
 
         // Then
         assertAll("Check CommentDto properties",
                 () -> assertNotNull(result),
-                () -> assertEquals(commentDto.getContent(), result.getContent(), "Content should match"),
-                () -> assertEquals(commentDto.getAuthor(), result.getAuthor(), "Author should match"),
+                () -> assertEquals(request.getContent(), result.getContent(), "Content should match"),
                 () -> assertEquals(postId, result.getPostId(), "Post ID should match")
         );
     }
 
     @Test
-    void testCreateComment_DuplicateComment() {
+    void addCommentToPost_NullContent() {
         // Given
         Long postId = 1L;
         CommentDto commentDto = new CommentDto();
-        commentDto.setContent("This is a great post!");
-        commentDto.setAuthor("John Doe");
-
-        when(commentRepository.existsByPostIdAndAuthorAndContent(postId, commentDto.getAuthor(), commentDto.getContent()))
-                .thenReturn(true);
-
-        // When and Then
-        assertAll("Check for CommentAlreadyExistsException",
-                () -> assertThrows(CommentAlreadyExistsException.class, () -> {
-                    commentService.createComment(commentDto, postId);
-                })
-        );
-    }
-
-    @Test
-    void testCreateComment_NullContent() {
-        // Given
-        Long postId = 1L;
-        CommentDto commentDto = new CommentDto();
-        commentDto.setAuthor("John Doe");
         commentDto.setContent(null);
 
         // When and Then
-        Exception exception = assertThrows(Exception.class, () -> {
-            commentService.createComment(commentDto, postId);
-        });
+        Exception exception = assertThrows(Exception.class, () ->
+                commentService.addCommentToPost(postId, commentDto));
 
         assertInstanceOf(InvalidCommentException.class, exception);
     }
 
     @Test
-    void testCreateComment_NullAuthor() {
+    void testAddCommentToPost_UserNotFound_ThrowsException() {
         // Given
         Long postId = 1L;
         CommentDto commentDto = new CommentDto();
         commentDto.setContent("This is a great post!");
-        commentDto.setAuthor(null);
 
-        // When and Then
-        assertThrows(MissingAuthorException.class, () -> {
-            commentService.createComment(commentDto, postId);
-        });
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn("user@example.com");
+
+        SecurityContext context = mock(SecurityContext.class);
+        when(context.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(context);
+
+        // Mock user not found
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThrows(UserAccountException.class, () -> commentService.addCommentToPost(postId, commentDto));
     }
 
+
     @Test
-    void testCreateComment_EmptyContent() {
+    void addCommentToPost_EmptyContent() {
         // Given
         Long postId = 1L;
         CommentDto commentDto = new CommentDto();
-        commentDto.setAuthor("John Doe");
         commentDto.setContent(""); // Empty content
 
         // When and Then
-        Exception exception = assertThrows(InvalidCommentException.class, () -> {
-            commentService.createComment(commentDto, postId);
-        });
+        Exception exception = assertThrows(InvalidCommentException.class, () ->
+                commentService.addCommentToPost(postId, commentDto));
 
         // Verify the exception message
         assertNotNull(exception);
     }
 
     @Test
-    void testCreateComment_EmptyAuthor() {
-        // Given
-        Long postId = 1L;
-        CommentDto commentDto = new CommentDto();
-        commentDto.setContent("This is a great post!");
-        commentDto.setAuthor("");
-
-        when(commentRepository.existsByPostIdAndAuthorAndContent(postId, commentDto.getAuthor(), commentDto.getContent()))
-                .thenReturn(false);
-
-        // When and Then
-        assertThrows(MissingAuthorException.class, () -> commentService.createComment(commentDto, postId));
-    }
-
-    @Test
-    void testCreateComment_InvalidPostId() {
+    void addCommentToPost_InvalidPostId() {
         // Given
         Long postId = -1L; // Invalid post ID
         CommentDto commentDto = new CommentDto();
-        commentDto.setAuthor("John Doe");
         commentDto.setContent("This is a great post!");
 
         // When and Then
-        Exception exception = assertThrows(InvalidPostIdException.class, () -> {
-            commentService.createComment(commentDto, postId);
-        });
+        Exception exception = assertThrows(InvalidPostIdException.class, () ->
+                commentService.addCommentToPost(postId, commentDto));
 
         assertEquals("Invalid post ID: " + postId, exception.getMessage());
+    }
+
+    @Test
+    void updateComment_ShouldUpdateCommentSuccessfully() {
+        Long postId = 1L;
+        Long commentId = 10L;
+        CommentDto requestDto = new CommentDto();
+        requestDto.setContent("Updated content");
+
+        Post mockPost = new Post();
+        mockPost.setId(postId);
+
+        Comment existingComment = new Comment();
+        existingComment.setId(commentId);
+        existingComment.setContent("Old content");
+        existingComment.setPost(mockPost);
+
+        when(blogRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CommentDto result = commentService.updateComment(requestDto, commentId, postId);
+
+        assertEquals("Updated content", result.getContent());
+        verify(commentRepository).save(existingComment);
+    }
+
+    @Test
+    void updateComment_ShouldThrowException_ForNonExistingPost() {
+        Long postId = 99999L;
+        Long commentId = 10L;
+        CommentDto requestDto = new CommentDto();
+        requestDto.setContent("Some content");
+
+        when(blogRepository.findById(postId)).thenReturn(Optional.empty());
+
+        PostNotFoundException exception = assertThrows(
+                PostNotFoundException.class,
+                () -> commentService.updateComment(requestDto, commentId, postId)
+        );
+
+        assertEquals("Post not found with id: 99999", exception.getMessage());
+    }
+
+    @Test
+    void updateComment_ShouldThrowException_ForNonExistingComment() {
+        Long postId = 1L;
+        Long commentId = 999999L;
+        CommentDto requestDto = new CommentDto();
+        requestDto.setContent("Some content");
+
+        when(blogRepository.findById(postId)).thenReturn(Optional.of(new Post()));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+        CommentNotFoundException exception = assertThrows(
+                CommentNotFoundException.class,
+                () -> commentService.updateComment(requestDto, commentId, postId)
+        );
+
+        assertEquals("Comment was not found", exception.getMessage());
     }
 }

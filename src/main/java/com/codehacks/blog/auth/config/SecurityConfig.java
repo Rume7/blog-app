@@ -73,6 +73,11 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyAuthority("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.DELETE, Constants.BLOG_PATH + "/delete/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.POST, Constants.COMMENT_PATH + "/{postId}/comments").authenticated()
+                            .requestMatchers(HttpMethod.PUT, Constants.COMMENT_PATH + "/update/{postId}/{commentId}").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.COMMENT_PATH + "/{id}").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.COMMENT_PATH + "/post/{postId}").authenticated()
+                            .requestMatchers(HttpMethod.DELETE, Constants.COMMENT_PATH + "/delete/{id}").hasAnyAuthority("ADMIN")
                             .anyRequest().authenticated();
                     log.debug("Configured authorization rules");
                 })

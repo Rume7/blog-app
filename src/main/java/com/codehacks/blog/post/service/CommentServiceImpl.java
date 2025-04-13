@@ -1,14 +1,21 @@
 package com.codehacks.blog.post.service;
 
+import com.codehacks.blog.auth.exception.UserAccountException;
+import com.codehacks.blog.auth.model.User;
+import com.codehacks.blog.auth.repository.UserRepository;
 import com.codehacks.blog.post.dto.CommentDto;
-import com.codehacks.blog.post.exception.*;
+import com.codehacks.blog.post.exception.CommentNotFoundException;
+import com.codehacks.blog.post.exception.InvalidCommentException;
+import com.codehacks.blog.post.exception.InvalidPostIdException;
+import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Comment;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -21,20 +28,27 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
+    private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final BlogRepository blogRepository;
 
-    public CommentDto createComment(@Valid CommentDto commentDto, Long postId) {
-        validateComment(commentDto, postId);
+    public CommentDto addCommentToPost(Long postId, CommentDto request) {
+        validateComment(request, postId);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UserAccountException("User not found"));
 
         Post post = blogRepository.findById(postId)
-                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+                .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         Comment comment = new Comment();
-        comment.setContent(commentDto.getContent());
-        comment.setAuthor(commentDto.getAuthor());
+        comment.setContent(request.getContent());
+        comment.setAuthor(user.getUsername());
         comment.setPost(post);
-        comment.setCreatedAt(LocalDateTime.now());
+
         Comment savedComment = commentRepository.save(comment);
         return mapToDto(savedComment);
     }
@@ -44,22 +58,24 @@ public class CommentServiceImpl implements CommentService {
             throw new InvalidPostIdException("Invalid post ID: " + postId);
         }
 
-        if (commentDto.getAuthor() == null || commentDto.getAuthor().isBlank()) {
-            throw new MissingAuthorException("Comment's author missing");
-        }
-
         if (commentDto.getContent() == null || commentDto.getContent().isEmpty()) {
             throw new InvalidCommentException("Comment's content is missing");
         }
+    }
 
-        // Check if a comment with the same content and author already exists for the post
-        boolean exists = commentRepository.existsByPostIdAndAuthorAndContent(postId,
-                commentDto.getAuthor(),
-                commentDto.getContent());
+    public CommentDto updateComment(@Valid CommentDto commentDto, Long commentId, Long postId) {
+        validateComment(commentDto, postId);
 
-        if (exists) {
-            throw new CommentAlreadyExistsException("Comment already exists for this post and author.");
-        }
+        blogRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentNotFoundException("Comment was not found"));
+
+        comment.setContent(commentDto.getContent());
+        comment.setUpdatedAt(LocalDateTime.now());
+        Comment savedComment = commentRepository.save(comment);
+        return mapToDto(savedComment);
     }
 
     public CommentDto getCommentById(Long id) {
@@ -86,7 +102,6 @@ public class CommentServiceImpl implements CommentService {
         CommentDto commentDto = new CommentDto();
         commentDto.setId(comment.getId());
         commentDto.setContent(comment.getContent());
-        commentDto.setAuthor(comment.getAuthor());
         commentDto.setPostId(comment.getPost().getId());
         commentDto.setCreatedAt(comment.getCreatedAt());
         return commentDto;

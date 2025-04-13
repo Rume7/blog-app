@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 
 public interface CommentService {
 
-    CommentDto createComment(@Valid CommentDto commentDto, Long postId);
+    CommentDto addCommentToPost(Long postId, @Valid CommentDto commentDto);
+
+    CommentDto updateComment(@Valid CommentDto commentDto, Long commentId, Long postId);
 
     CommentDto getCommentById(Long id);
 
