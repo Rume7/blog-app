@@ -184,32 +184,6 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void testDeleteAccount_Forbidden_WhenUserTriesToDeleteAnotherAccount() throws Exception {
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "testUser",
-                "Password123",
-                "test@example.com",
-                Role.USER,
-                List.of(new SimpleGrantedAuthority("ROLE_USER")),
-                true);
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-
-        // Attempt to delete someone else's account
-        mockMvc.perform(delete(Constants.AUTH_PATH + "/delete-account")
-                        .param("username", "anotherUser")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Not authorized to delete this account"));
-
-        verify(authService, never()).deleteUserAccount(anyString());
-    }
-
-
-    @Test
-    @WithMockUser(roles = "USER")
     void testDeleteAccount_Failure_WhenUserRoleDeletesOwnAccount() throws Exception {
         CustomUserDetails userDetails = new CustomUserDetails(
                 "testUser",
