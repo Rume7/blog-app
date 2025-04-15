@@ -44,9 +44,15 @@ jobs:
         run: |
           version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "Current version: $version"
-          IFS='.' read -r major minor patch <<< "${version}.0.0"
+          
+          IFS='.' read -r major minor patch <<< "${version}"
+          
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+          
           bump_type="${{ steps.bump_type.outputs.type }}"
-
+          
           if [ "$bump_type" = "major" ]; then
             major=$((major + 1))
             minor=0
@@ -57,7 +63,7 @@ jobs:
           else
             patch=$((patch + 1))
           fi
-
+                         
           new_version="$major.$minor.$patch"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
