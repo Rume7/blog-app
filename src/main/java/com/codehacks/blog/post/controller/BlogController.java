@@ -6,6 +6,8 @@ import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -48,6 +50,10 @@ public class BlogController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    
+    @Operation(summary = "Create a new blog post",
+            description = "Only accessible by ADMIN or AUTHOR",
+            security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping(value = "/create", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post post) throws InvalidPostException {
         log.info("Received Post: {}", post);
