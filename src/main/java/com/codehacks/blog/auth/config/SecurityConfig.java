@@ -49,6 +49,7 @@ public class SecurityConfig {
         log.debug("Configuring SecurityFilterChain");
 
         http
+                // CSRF protection is disabled because this is a stateless REST API using JWT authentication.
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception
