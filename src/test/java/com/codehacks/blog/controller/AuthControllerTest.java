@@ -101,6 +101,8 @@ class AuthControllerTest {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
 
         when(userDetails.getUsername()).thenReturn("user@example.com");
+        when(userDetails.getEmail()).thenReturn("user@example.com");
+        when(userDetails.getRole()).thenReturn(Role.ADMIN);
 
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
@@ -113,7 +115,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Login successful"))
                 .andExpect(jsonPath("$.data.token").value("mockToken"))
-                .andExpect(jsonPath("$.data.email").value("user@example.com"));
+                .andExpect(jsonPath("$.data.email").value("user@example.com"))
+                .andExpect(jsonPath("$.data.role").value("ADMIN"));
     }
 
     @Test

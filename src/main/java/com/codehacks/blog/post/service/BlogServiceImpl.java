@@ -10,6 +10,8 @@ import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.util.Constants;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -125,5 +127,10 @@ public class BlogServiceImpl implements BlogService {
         preview.setPreviewContent(previewContent);
 
         return preview;
+    }
+
+    public List<Post> getRecentPosts(int count) {
+        Pageable pageable = PageRequest.of(0, count); // page 0, size = count
+        return blogRepository.findRecentPosts(pageable);
     }
 }

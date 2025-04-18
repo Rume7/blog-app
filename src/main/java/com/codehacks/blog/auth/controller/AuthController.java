@@ -85,7 +85,8 @@ public class AuthController {
             headers.add("Authorization", "Bearer " + generateToken);
 
             // Build AuthResponse in both header and body.
-            AuthResponse authResponse = new AuthResponse(generateToken, customUserDetails.getUsername(), loginRequest.email());
+            AuthResponse authResponse = new AuthResponse(generateToken, customUserDetails.getUsername(),
+                    customUserDetails.getEmail(), customUserDetails.getRole().name());
 
             return ResponseEntity.ok()
                     .headers(headers)
@@ -119,17 +120,16 @@ public class AuthController {
     @PreAuthorize("hasAnyRole('SUBSCRIBER', 'ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteAccount(@RequestParam String username,
                                                              @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // Allow only admins or users deleting their own account
-        boolean isSelfDelete = currentUser.getUsername().equals(username);
+        // Allow only admins to delete their own account
         boolean isAdmin = currentUser.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isSelfDelete && !isAdmin) {
+        if (!isAdmin) {
             log.warn("Unauthorized delete attempt by '{}' for account '{}'", currentUser.getUsername(), username);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ApiResponse<>(false, "Not authorized to delete this account", null));
         }
-        
+
         authService.deleteUserAccount(username);
         log.info("Account deleted by '{}': {}", currentUser.getUsername(), username);
         return ResponseEntity.ok(new ApiResponse<>(true, "Account deleted successfully", null));

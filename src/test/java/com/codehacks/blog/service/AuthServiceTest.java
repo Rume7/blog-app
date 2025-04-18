@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,7 +89,7 @@ class AuthServiceTest {
 
         User user = new User(1L, "username", "encodedPassword", email, role, true, LocalDateTime.now(), LocalDateTime.now());
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername("username")).thenReturn(Optional.of(user));
         when(tokenService.generateToken(user)).thenReturn("generatedToken");
 
         // When
@@ -95,7 +97,7 @@ class AuthServiceTest {
 
         // Then
         assertEquals("generatedToken", result);
-        verify(userRepository, times(2)).findByEmail(email);
+        verify(userRepository, times(2)).findByUsername(user.getUsername());
         verify(tokenService, times(1)).generateToken(user);
     }
 
@@ -111,7 +113,7 @@ class AuthServiceTest {
                 "username", "encodedPassword", email, role, authorities, true
         );
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
 
         // When & Then
         UserAccountException thrown = assertThrows(UserAccountException.class, () -> {
@@ -119,7 +121,7 @@ class AuthServiceTest {
         });
 
         assertEquals("Invalid login credentials", thrown.getMessage());
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, never()).findByUsername(user.getUsername());
     }
 
 
