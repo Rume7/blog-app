@@ -7,12 +7,10 @@ import com.codehacks.blog.util.Constants;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(Constants.USERS_PATH)
@@ -26,7 +24,7 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
         List<User> users = userRepository.findAll();
         if (users.isEmpty()) {
@@ -36,5 +34,13 @@ public class UserController {
         }
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new ApiResponse<>(true, "All users", users));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<User>> getCurrentUser(@RequestParam String email) {
+        Optional<User> currentUser = userRepository.findByEmail(email);
+        return currentUser.map(user -> ResponseEntity.status(HttpStatus.OK)
+                        .body(new ApiResponse<>(true, "Success", user)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 } 

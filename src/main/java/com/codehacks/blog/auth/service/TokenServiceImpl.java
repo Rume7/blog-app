@@ -43,6 +43,7 @@ public class TokenServiceImpl implements TokenService {
 
         String token = Jwts.builder()
                 .setSubject(String.valueOf(user.getId()))
+                .claim("username", user.getUsername())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
                 .setIssuedAt(now)

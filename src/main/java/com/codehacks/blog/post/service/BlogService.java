@@ -25,4 +25,6 @@ public interface BlogService {
     Boolean deletePost(Long blogId) throws InvalidPostException;
 
     List<BlogPreviewDTO> getBlogPreviews();
+
+    List<Post> getRecentPosts(int number);
 }

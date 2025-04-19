@@ -33,10 +33,10 @@ public class AuthService {
 
     public String authenticate(CustomUserDetails customUserDetails) {
         log.info("AuthService: Starting authentication for email: {}", customUserDetails.getEmail());
-        Optional<User> optionalUser = userRepository.findByEmail(customUserDetails.getEmail());
+        Optional<User> optionalUser = userRepository.findByUsername(customUserDetails.getUsername());
 
         if (optionalUser.isEmpty()) {
-            log.error("AuthService: User not found with email: {}", customUserDetails.getEmail());
+            log.error("AuthService: User not found with username: {}", customUserDetails.getUsername());
             throw new UserAccountException("Invalid login credentials");
         }
 
@@ -47,7 +47,7 @@ public class AuthService {
     }
 
     private String generateToken(UserDetails userDetails) {
-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+        Optional<User> optionalUser = userRepository.findByUsername(userDetails.getUsername());
         if (optionalUser.isEmpty()) {
             throw new UserAccountException("User not found");
         }

@@ -70,20 +70,21 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/register").permitAll()
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/login").permitAll()
                             .requestMatchers("/error").permitAll()
-                            .requestMatchers(HttpMethod.PUT, Constants.AUTH_PATH + "/change-role").hasAuthority("ADMIN")
+                            .requestMatchers(HttpMethod.PUT, Constants.AUTH_PATH + "/change-role").hasRole("ADMIN")
                             .requestMatchers(HttpMethod.GET, "/api/v1/users").hasAuthority("ADMIN")
                             .requestMatchers(Constants.AUTH_PATH + "/logout").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/all").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/{id}").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/recent").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/previews").permitAll()
-                            .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyAuthority("ADMIN", "AUTHOR")
-                            .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
-                            .requestMatchers(HttpMethod.DELETE, Constants.BLOG_PATH + "/delete/{id}").hasAnyAuthority("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyRole("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyRole("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.DELETE, Constants.BLOG_PATH + "/delete/{id}").hasAnyRole("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.POST, Constants.COMMENT_PATH + "/{postId}/comments").authenticated()
                             .requestMatchers(HttpMethod.PUT, Constants.COMMENT_PATH + "/update/{postId}/{commentId}").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.COMMENT_PATH + "/{id}").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.COMMENT_PATH + "/post/{postId}").authenticated()
-                            .requestMatchers(HttpMethod.DELETE, Constants.COMMENT_PATH + "/delete/{id}").hasAnyAuthority("ADMIN")
+                            .requestMatchers(HttpMethod.DELETE, Constants.COMMENT_PATH + "/delete/{id}").hasRole("ADMIN")
                             .anyRequest().authenticated();
                     log.debug("Configured authorization rules");
                 })
@@ -102,7 +103,7 @@ public class SecurityConfig {
         log.debug("Configuring CORS");
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setExposedHeaders(List.of("Authorization"));

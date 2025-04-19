@@ -14,4 +14,5 @@ public class AuthResponse {
     private String token;  // Optional now, as it will be in the header
     private String username;
     private String email;
+    private String role;
 } 
