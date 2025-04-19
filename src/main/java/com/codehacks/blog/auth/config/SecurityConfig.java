@@ -75,6 +75,7 @@ public class SecurityConfig {
                             .requestMatchers(Constants.AUTH_PATH + "/logout").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/all").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/{id}").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/recent").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/previews").permitAll()
                             .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyRole("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyRole("ADMIN", "AUTHOR")
