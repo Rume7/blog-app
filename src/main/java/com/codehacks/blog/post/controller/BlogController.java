@@ -3,6 +3,7 @@ package com.codehacks.blog.post.controller;
 import com.codehacks.blog.auth.dto.ApiResponse;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
@@ -12,6 +13,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +40,9 @@ import java.util.Set;
 public class BlogController {
 
     private final BlogService blogService;
+
+    @Value("${blog.recent.limit}")
+    private int defaultRecentLimit;
 
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Set<Post>> getAllPosts() {
@@ -94,8 +101,11 @@ public class BlogController {
     }
 
     @GetMapping("/recent")
-    public ResponseEntity<List<Post>> getRecentPosts(@RequestParam int number) {
-        List<Post> posts = blogService.getRecentPosts(number);
+    public ResponseEntity<List<PostSummaryDTO>> getRecentPosts(
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        int safeLimit = (limit != null) ? Math.min(limit, 10) : defaultRecentLimit;
+        Pageable pageable = PageRequest.of(0, safeLimit);
+        List<PostSummaryDTO> posts = blogService.getRecentPosts(pageable);
         return ResponseEntity.ok(posts);
     }
 }

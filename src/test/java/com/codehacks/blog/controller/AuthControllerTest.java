@@ -79,7 +79,7 @@ class AuthControllerTest {
     @Test
     void testRegister_Success() throws Exception {
         RegisterRequest request = new RegisterRequest("testUser", "Test@123", "user@example.com", "USER");
-        UserDTO responseDTO = new UserDTO("user@example.com", "testUser");
+        UserDTO responseDTO = new UserDTO("user@example.com", "testUser", Role.USER.name());
 
         when(authService.registerUser(any(), anyString())).thenReturn(responseDTO);
 

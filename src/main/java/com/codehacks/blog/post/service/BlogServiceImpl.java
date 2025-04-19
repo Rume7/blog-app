@@ -2,7 +2,9 @@ package com.codehacks.blog.post.service;
 
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.post.mapper.PostMapper;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.AuthorRepository;
@@ -10,7 +12,7 @@ import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.util.Constants;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +29,9 @@ public class BlogServiceImpl implements BlogService {
 
     private final BlogRepository blogRepository;
     private final AuthorRepository authorRepository;
+    private final PostMapper postMapper;
+
+    @Value("${blog.recent.limit}")
 
     @Override
     public Set<Post> getAllPosts() {
@@ -119,18 +124,39 @@ public class BlogServiceImpl implements BlogService {
         preview.setAuthor(String.join(" ", blog.getAuthor().getFirstName(), blog.getAuthor().getLastName()));
         preview.setCreatedAt(blog.getCreatedAt());
 
-        // Get first two paragraphs
-        String[] paragraphs = blog.getContent().split("\n\n");
-        String previewContent = Arrays.stream(paragraphs)
-                .limit(2)
-                .collect(Collectors.joining("\n\n"));
+        String content = blog.getContent();
+        int wordCount = countWords(content);
+
+        String previewContent;
+        final int numberOfWords = 600;
+        if (wordCount >= numberOfWords) {
+            int previewWordCount = (int) (wordCount * 0.8);
+            previewContent = getFirstNWords(content, previewWordCount);
+        } else {
+            // Get first two paragraphs
+            String[] paragraphs = blog.getContent().split("\n\n");
+            previewContent = Arrays.stream(paragraphs)
+                    .limit(2)
+                    .collect(Collectors.joining("\n\n"));
+        }
         preview.setPreviewContent(previewContent);
 
         return preview;
     }
 
-    public List<Post> getRecentPosts(int count) {
-        Pageable pageable = PageRequest.of(0, count); // page 0, size = count
-        return blogRepository.findRecentPosts(pageable);
+    private int countWords(String content) {
+        return content.trim().split("\\s+").length;
+    }
+
+    private String getFirstNWords(String content, int n) {
+        String[] words = content.trim().split("\\s+");
+        return String.join(" ", Arrays.copyOfRange(words, 0, Math.min(n, words.length)));
+    }
+
+    public List<PostSummaryDTO> getRecentPosts(Pageable pageable) {
+        return blogRepository.findTopNRecentPostsOrderByCreatedAt(pageable)
+                .stream()
+                .map(postMapper::toSummary)
+                .toList();
     }
 }

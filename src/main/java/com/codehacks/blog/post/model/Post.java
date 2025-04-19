@@ -60,6 +60,13 @@ public class Post {
         this.author = new Author(author.getFirstName(), author.getLastName());
     }
 
+    public Post(String title, String content, Author author, LocalDateTime createdAt) {
+        this.title = title != null ? title.trim() : null;
+        this.content = content != null ? content.trim() : null;
+        this.author = new Author(author.getFirstName(), author.getLastName());
+        this.createdAt = createdAt;
+    }
+
     public void setTitle(String title) {
         this.title = title != null ? title.trim() : null;
     }

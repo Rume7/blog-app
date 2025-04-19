@@ -17,5 +17,5 @@ public interface BlogRepository extends JpaRepository<Post, Long> {
     List<Post> findByTitleContainingIgnoreCase(String title);
 
     @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
-    List<Post> findRecentPosts(Pageable pageable);
+    List<Post> findTopNRecentPostsOrderByCreatedAt(Pageable pageable);
 }
