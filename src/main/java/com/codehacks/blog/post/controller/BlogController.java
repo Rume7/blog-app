@@ -56,7 +56,7 @@ public class BlogController {
     @Operation(summary = "Create a new blog post",
             description = "Only accessible by ADMIN or AUTHOR",
             security = @SecurityRequirement(name = "bearerAuth"))
-    @PreAuthorize("hasAnyRole('ADMIN', 'AUTHOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping(value = "/create", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post post) throws InvalidPostException {
         log.info("Received Post: {}", post);
