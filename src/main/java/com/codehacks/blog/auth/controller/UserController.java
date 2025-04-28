@@ -8,6 +8,7 @@ import com.codehacks.blog.auth.model.User;
 import com.codehacks.blog.auth.repository.UserRepository;
 import com.codehacks.blog.util.Constants;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,7 +31,7 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    @GetMapping
+    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
         List<User> users = userRepository.findAll();
@@ -43,7 +44,7 @@ public class UserController {
                 .body(new ApiResponse<>(true, "All users", users));
     }
 
-    @GetMapping("/me")
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<UserDTO>> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Optional<User> currentUser = userRepository.findByEmail(userDetails.getEmail());
         return currentUser

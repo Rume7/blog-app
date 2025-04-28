@@ -345,7 +345,7 @@ class BlogControllerTest {
         List<PostSummaryDTO> mockPosts = createMockPosts(limit);
         when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
-        mockMvc.perform(get("/recent?limit=" + limit))
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + limit))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(limit)); // Ensure the length is 5
     }

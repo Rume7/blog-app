@@ -60,7 +60,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserDTO>> register(@RequestBody @Valid RegisterRequest request) {
         UserDTO savedUser = authService.registerUser(request.toUser(), request.password());
         log.info("User registered with email: {}", savedUser.getEmail());
-        return ResponseEntity.ok(new ApiResponse<>(true, "User registered successfully", savedUser));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "User registered successfully", savedUser));
     }
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -136,14 +137,14 @@ public class AuthController {
     }
 
 
-    @PostMapping("/logout")
+    @PostMapping(value = "/logout", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> logout(@AuthenticationPrincipal UserDetails userDetails) {
         authService.logout(userDetails.getUsername());
         return ResponseEntity.ok("Logged out successfully");
     }
 
-    @PostMapping("/admin-only")
+    @PostMapping(value = "/admin-only", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<String>> adminEndpoint(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

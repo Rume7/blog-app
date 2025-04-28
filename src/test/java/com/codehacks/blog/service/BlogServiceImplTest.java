@@ -216,7 +216,7 @@ class BlogServiceImplTest {
     void shouldFindPostById() {
         // Given
         Long postId = 1L;
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(testPost));
 
         // When
         Post result = blogService.getPostById(postId);
@@ -227,7 +227,7 @@ class BlogServiceImplTest {
                 () -> assertEquals(testPost.getTitle(), result.getTitle()),
                 () -> assertEquals(testPost.getContent(), result.getContent())
         );
-        verify(blogRepository, times(1)).findById(postId);
+        verify(blogRepository, times(1)).findByIdWithComments(postId);
     }
 
     @Test

@@ -43,7 +43,7 @@ public class BlogServiceImpl implements BlogService {
         if (id == null || id < 1) {
             throw new PostNotFoundException("Blog id " + id + " is invalid");
         }
-        return blogRepository.findById(id)
+        return blogRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new PostNotFoundException("Post " + id + " was not found"));
     }
 
