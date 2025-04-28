@@ -3,6 +3,7 @@ package com.codehacks.blog.controller;
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.GlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
@@ -17,13 +18,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -332,4 +338,23 @@ class BlogControllerTest {
                 .andExpect(status().isNotFound()) // Expect 400 Bad Request
                 .andExpect(content().string("")); // Expect empty body
     }
+
+    @Test
+    void testGetRecentPosts_WithLimit() throws Exception {
+        int limit = 5;
+        List<PostSummaryDTO> mockPosts = createMockPosts(limit);
+        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + limit))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(limit)); // Ensure the length is 5
+    }
+
+    // Helper method to generate mock data for posts
+    private List<PostSummaryDTO> createMockPosts(int limit) {
+        return IntStream.range(0, limit)
+                .mapToObj(i -> new PostSummaryDTO(i + 1L, "Post for day " + (i + 1), LocalDateTime.of(2022, 01, 03, 22, 20, 2)))
+                .collect(Collectors.toList());
+    }
+
 }

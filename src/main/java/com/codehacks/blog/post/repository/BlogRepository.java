@@ -6,8 +6,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BlogRepository extends JpaRepository<Post, Long> {
@@ -16,6 +18,9 @@ public interface BlogRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByTitleContainingIgnoreCase(String title);
 
+    @Query("SELECT p FROM Post p LEFT JOIN FETCH p.comments WHERE p.id = :id")
+    Optional<Post> findByIdWithComments(@Param("id") Long id);
+
     @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
-    List<Post> findRecentPosts(Pageable pageable);
+    List<Post> findTopNRecentPostsOrderByCreatedAt(Pageable pageable);
 }

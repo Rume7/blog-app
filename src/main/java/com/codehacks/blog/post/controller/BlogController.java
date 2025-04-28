@@ -3,6 +3,7 @@ package com.codehacks.blog.post.controller;
 import com.codehacks.blog.auth.dto.ApiResponse;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
@@ -10,8 +11,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,10 +35,15 @@ import java.util.Set;
 @Slf4j
 @RestController
 @RequestMapping(Constants.BLOG_PATH)
-@AllArgsConstructor
 public class BlogController {
 
     private final BlogService blogService;
+    private final int defaultRecentLimit;
+
+    public BlogController(BlogService blogService, @Value("${blog.recent.limit}") int defaultRecentLimit) {
+        this.blogService = blogService;
+        this.defaultRecentLimit = defaultRecentLimit;
+    }
 
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Set<Post>> getAllPosts() {
@@ -62,7 +70,8 @@ public class BlogController {
         log.info("Received Post: {}", post);
         try {
             Post createdPost = blogService.createPost(post);
-            return ResponseEntity.ok(ApiResponse.created(createdPost));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.created(createdPost));
         } catch (InvalidPostException ex) {
             return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
         }
@@ -93,9 +102,12 @@ public class BlogController {
         return ResponseEntity.ok(previews);
     }
 
-    @GetMapping("/recent")
-    public ResponseEntity<List<Post>> getRecentPosts(@RequestParam int number) {
-        List<Post> posts = blogService.getRecentPosts(number);
+    @GetMapping(value = "/recent", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PostSummaryDTO>> getRecentPosts(
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        int safeLimit = (limit != null) ? Math.min(limit, 10) : defaultRecentLimit;
+        Pageable pageable = PageRequest.of(0, safeLimit);
+        List<PostSummaryDTO> posts = blogService.getRecentPosts(pageable);
         return ResponseEntity.ok(posts);
     }
 }

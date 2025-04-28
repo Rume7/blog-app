@@ -11,6 +11,10 @@ public class UserMapper implements Function<User, UserDTO> {
 
     @Override
     public UserDTO apply(User user) {
-        return new UserDTO(user.getEmail(), user.getUsername());
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUsername(user.getUsername());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setRole(user.getRole().name());
+        return userDTO;
     }
 }

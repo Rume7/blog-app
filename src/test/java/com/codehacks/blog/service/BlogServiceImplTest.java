@@ -1,7 +1,9 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.post.mapper.PostMapper;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.AuthorRepository;
@@ -16,12 +18,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -47,13 +49,33 @@ class BlogServiceImplTest {
     @InjectMocks
     private BlogServiceImpl blogService;
 
+    @Mock
+    private PostMapper postMapper;
+
     private Post testPost;
     private Author testAuthor;
+    private Pageable pageable;
+    private List<Post> posts;
+    private List<PostSummaryDTO> postSummaryDTOs;
 
     @BeforeEach
     void setUp() {
         testAuthor = new Author("Test", "Author");
         testPost = new Post("Test Title", "Test Content", testAuthor);
+
+        pageable = PageRequest.of(0, 7); // Let's assume we want 7 posts for the test case
+
+        // Create a list of sample posts
+        posts = List.of(
+                new Post("Post for Day 1", "Content of post 1", testAuthor, LocalDateTime.now()),
+                new Post("Post for Day 2", "Content of post 2", testAuthor, LocalDateTime.now().minusDays(1)),
+                new Post("Post for Day 3", "Content of post 3", testAuthor, LocalDateTime.now().minusDays(2))
+        );
+
+        // Map posts to PostSummaryDTO
+        postSummaryDTOs = posts.stream()
+                .map(post -> new PostSummaryDTO(post.getId(), post.getTitle(), post.getCreatedAt()))
+                .collect(Collectors.toList());
     }
 
     @Test
@@ -194,7 +216,7 @@ class BlogServiceImplTest {
     void shouldFindPostById() {
         // Given
         Long postId = 1L;
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(testPost));
 
         // When
         Post result = blogService.getPostById(postId);
@@ -205,7 +227,7 @@ class BlogServiceImplTest {
                 () -> assertEquals(testPost.getTitle(), result.getTitle()),
                 () -> assertEquals(testPost.getContent(), result.getContent())
         );
-        verify(blogRepository, times(1)).findById(postId);
+        verify(blogRepository, times(1)).findByIdWithComments(postId);
     }
 
     @Test
@@ -269,5 +291,60 @@ class BlogServiceImplTest {
         // Then
         assertEquals(2, results.size());
         verify(blogRepository, times(1)).findByAuthor(authorName);
+    }
+
+    @Test
+    void testGetRecentPosts_Success() {
+        // Given
+        when(blogRepository.findTopNRecentPostsOrderByCreatedAt(pageable)).thenReturn(posts);
+
+
+        when(postMapper.toSummary(any(Post.class))).thenReturn(new PostSummaryDTO(1L, "Post for Day 1", LocalDateTime.now()));
+
+        // When
+        List<PostSummaryDTO> result = blogService.getRecentPosts(pageable);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertEquals("Post for Day 1", result.get(0).getTitle());
+    }
+
+    @Test
+    void testGetRecentPosts_NoPosts() {
+        // Given
+        when(blogRepository.findTopNRecentPostsOrderByCreatedAt(pageable))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        List<PostSummaryDTO> result = blogService.getRecentPosts(pageable);
+
+        // Then
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetRecentPosts_PagableWithDifferentSize() {
+        // Given
+        List<Post> largeListOfPosts = new ArrayList<>();
+
+        for (int i = 0; i <= 20; i++) {
+            final Post post = new Post("Post for Day " + (i + 1), "Content of post " + (i + 1), testAuthor, LocalDateTime.now().minusDays(i));
+            largeListOfPosts.add(post);
+        }
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(blogRepository.findTopNRecentPostsOrderByCreatedAt(any(Pageable.class)))
+                .thenReturn(largeListOfPosts.subList(0, 5));
+
+        // When
+        List<PostSummaryDTO> result = blogService.getRecentPosts(pageable);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(5, result.size());
+        verify(blogRepository, times(1)).findTopNRecentPostsOrderByCreatedAt(any(Pageable.class));
     }
 }
