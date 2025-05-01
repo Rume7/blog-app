@@ -24,7 +24,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -733,5 +739,67 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
 
         verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(false));
+    }
+
+    @Test
+    void shouldGetPostsByAuthorSuccessfully() throws Exception {
+        // Given
+        Author authorName = new Author("John", "Doe");
+        List<Post> mockResults = Arrays.asList(
+                new Post("Post 1 for content 1", "First Post by John", authorName),
+                new Post("Post 2 for content 2", "Second Post by John", authorName)
+        );
+
+        // When
+        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(mockResults);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", authorName.getFirstName())
+                        .param("lastName", authorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenAuthorHasNoPosts() throws Exception {
+        // Given
+        Author authorName = new Author("Jane", "Smith");
+
+        // When
+        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(Collections.emptyList());
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", authorName.getFirstName())
+                        .param("lastName", authorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+    }
+
+    @Test
+    void shouldHandleInvalidAuthorData() throws Exception {
+        // Given
+        Author invalidAuthorName = new Author("", "");
+
+        // When
+        when(blogService.getPostsByAuthor(eq(author)))
+                .thenThrow(new InvalidPostException("Author name cannot be empty"));
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", invalidAuthorName.getFirstName())
+                        .param("lastName", invalidAuthorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Author name cannot be empty"));
+
+        verify(blogService, times(0)).getPostsByAuthor(any());
     }
 }
