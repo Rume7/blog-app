@@ -1,9 +1,8 @@
-package com.codehacks.blog.controller;
+package com.codehacks.blog.post.controller;
 
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.GlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
-import com.codehacks.blog.post.controller.BlogController;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
@@ -11,6 +10,7 @@ import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -26,8 +26,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,12 +64,15 @@ class BlogControllerTest {
     private Author author;
     private int defaultRecentLimit;
 
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setUp() {
         author = new Author();
         author.setFirstName("John");
         author.setLastName("Doe");
         defaultRecentLimit = 5;     // Default value for testing
+        objectMapper = new ObjectMapper();
     }
 
     @Test
@@ -212,6 +217,12 @@ class BlogControllerTest {
         Post post = new Post("Valid Title", "This is a valid blog post content", author);
         post.setId(2L);
 
+        Map<String, String> postData = new HashMap<>();
+        postData.put("title", post.getTitle());
+        postData.put("content", post.getContent());
+
+        String jsonContent = objectMapper.writeValueAsString(postData);
+
         // When
         when(blogService.createPost(any(Post.class))).thenReturn(post);
 
@@ -219,7 +230,7 @@ class BlogControllerTest {
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Valid Title\", \"content\":\"This is a valid blog post content\"}"))
+                        .content(jsonContent))
                 .andExpect(status().is2xxSuccessful())
                 .andExpect(jsonPath("$.data.title").value("Valid Title"))
                 .andExpect(jsonPath("$.data.content").value("This is a valid blog post content"));
@@ -228,7 +239,14 @@ class BlogControllerTest {
     @Test
     void shouldReturnBadRequestWhenTitleIsTooShort() throws Exception, InvalidPostException {
         // Given
-        String shortTitle = "ABC";
+        Post post = new Post("ABC", "Content for readers", author);
+        post.setId(1L);
+
+        Map<String, String> postData = new HashMap<>();
+        postData.put("title", post.getTitle());
+        postData.put("content", post.getContent());
+
+        String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
         when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title length is too short"));
@@ -236,7 +254,7 @@ class BlogControllerTest {
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content("{\"title\":\"" + shortTitle + "\", \"content\":\"Content for readers\"}"))
+                        .content(jsonContent))
                 .andExpect(status().isBadRequest())  // Expecting 400 Bad Request
                 .andExpect(jsonPath("$.message").value("Title length is too short"));
     }
@@ -294,13 +312,21 @@ class BlogControllerTest {
         Post originalPost = new Post("Original Title", "Original content", author);
         Post updatedPost = new Post("Updated Title", "Updated content", author);
 
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        Map<String, String> postData = new HashMap<>();
+        postData.put("title", originalPost.getTitle());
+        postData.put("content", originalPost.getContent());
+
+        String jsonContent = objectMapper.writeValueAsString(postData);
+
         // When
         when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
 
         // Then
         mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                        .content(jsonContent))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.title").value("Updated Title"))
                 .andExpect(jsonPath("$.data.content").value("Updated content"));
@@ -344,10 +370,14 @@ class BlogControllerTest {
 
     @Test
     void testGetRecentPosts_WithLimit() throws Exception {
+        // Given
         int limit = 5;
         List<PostSummaryDTO> mockPosts = createMockPosts(limit);
+
+        // When
         when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
+        // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + limit))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(limit)); // Ensure the length is 5
@@ -471,6 +501,13 @@ class BlogControllerTest {
         verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
     }
 
+    // Helper method to generate mock data for posts
+    private List<PostSummaryDTO> createMockPosts(int limit) {
+        return IntStream.range(0, limit)
+                .mapToObj(i -> new PostSummaryDTO(i + 1L, "Post for day " + (i + 1), LocalDateTime.of(2022, 01, 03, 22, 20, 2)))
+                .collect(Collectors.toList());
+    }
+
     @Test
     void shouldReturnEmptyListWhenNoRecentPostsExist() throws Exception {
         // Given & When
@@ -503,7 +540,7 @@ class BlogControllerTest {
         // Given
         int negativeLimit = -5;
 
-        // Then
+        // When & Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
                         .param("limit", String.valueOf(negativeLimit))
                         .contentType(MediaType.APPLICATION_JSON))
@@ -512,18 +549,19 @@ class BlogControllerTest {
         verify(blogService, times(0)).getRecentPosts(any(Pageable.class));
     }
 
-    // Helper method to generate mock data for posts
-    private List<PostSummaryDTO> createMockPosts(int limit) {
-        return IntStream.range(0, limit)
-                .mapToObj(i -> new PostSummaryDTO(i + 1L, "Post for day " + (i + 1), LocalDateTime.of(2022, 01, 03, 22, 20, 2)))
-                .collect(Collectors.toList());
-    }
-
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistentPost() throws Exception {
         // Given
         Long nonExistentPostId = 999L;
         Post updateData = new Post("Updated Title", "Updated content", author);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        Map<String, String> postData = new HashMap<>();
+        postData.put("title", updateData.getTitle());
+        postData.put("content", updateData.getContent());
+
+        String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
         when(blogService.updatePost(any(Post.class), eq(nonExistentPostId)))
@@ -532,7 +570,7 @@ class BlogControllerTest {
         // Then
         mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", nonExistentPostId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                        .content(jsonContent))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Post not found with id: " + nonExistentPostId));
 
@@ -565,6 +603,14 @@ class BlogControllerTest {
         Long postId = 1L;
         Post updateData = new Post("Updated Title", "Updated content", author);
 
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        Map<String, String> postData = new HashMap<>();
+        postData.put("title", updateData.getTitle());
+        postData.put("content", updateData.getContent());
+
+        String jsonContent = objectMapper.writeValueAsString(postData);
+
         // When
         when(blogService.updatePost(any(Post.class), eq(postId)))
                 .thenThrow(new RuntimeException("Database error"));
@@ -572,7 +618,7 @@ class BlogControllerTest {
         // Then
         mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                        .content(jsonContent))
                 .andExpect(status().isInternalServerError());
 
         verify(blogService, times(1)).updatePost(any(Post.class), eq(postId));
@@ -587,7 +633,6 @@ class BlogControllerTest {
                 new PostSummaryDTO(2L, "Spring Security Guide", LocalDateTime.now())
         );
 
-        // When
         // When
         when(blogService.searchPosts(eq(searchTerm), eq(true), eq(true))).thenReturn(mockResults);
 
@@ -694,5 +739,67 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
 
         verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(false));
+    }
+
+    @Test
+    void shouldGetPostsByAuthorSuccessfully() throws Exception {
+        // Given
+        Author authorName = new Author("John", "Doe");
+        List<Post> mockResults = Arrays.asList(
+                new Post("Post 1 for content 1", "First Post by John", authorName),
+                new Post("Post 2 for content 2", "Second Post by John", authorName)
+        );
+
+        // When
+        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(mockResults);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", authorName.getFirstName())
+                        .param("lastName", authorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenAuthorHasNoPosts() throws Exception {
+        // Given
+        Author authorName = new Author("Jane", "Smith");
+
+        // When
+        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(Collections.emptyList());
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", authorName.getFirstName())
+                        .param("lastName", authorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+    }
+
+    @Test
+    void shouldHandleInvalidAuthorData() throws Exception {
+        // Given
+        Author invalidAuthorName = new Author("", "");
+
+        // When
+        when(blogService.getPostsByAuthor(eq(author)))
+                .thenThrow(new InvalidPostException("Author name cannot be empty"));
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+                        .param("firstName", invalidAuthorName.getFirstName())
+                        .param("lastName", invalidAuthorName.getLastName())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Author name cannot be empty"));
+
+        verify(blogService, times(0)).getPostsByAuthor(any());
     }
 }

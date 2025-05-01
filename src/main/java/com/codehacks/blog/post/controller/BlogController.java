@@ -4,6 +4,7 @@ import com.codehacks.blog.auth.dto.ApiResponse;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
+import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
@@ -114,7 +115,7 @@ public class BlogController {
         return ResponseEntity.ok(posts);
     }
 
-    @GetMapping("/search")
+    @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PostSummaryDTO>> searchPosts(
             @RequestParam String query,
             @RequestParam(required = false, defaultValue = "true") boolean caseSensitive,
@@ -124,5 +125,15 @@ public class BlogController {
         }
         List<PostSummaryDTO> results = blogService.searchPosts(query.trim(), caseSensitive, exactMatch);
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping(value = "/author", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Post>> getPostsByAuthor(@RequestParam String firstName, String lastName) {
+        if (firstName == null || firstName.trim().isEmpty() || lastName == null || lastName.trim().isEmpty()) {
+            throw new InvalidPostException("Author name cannot be empty");
+        }
+        Author author = new Author(firstName, lastName);
+        List<Post> posts = blogService.getPostsByAuthor(author);
+        return ResponseEntity.ok(posts);
     }
 }
