@@ -159,4 +159,34 @@ public class BlogServiceImpl implements BlogService {
                 .map(postMapper::toSummary)
                 .toList();
     }
+
+    @Override
+    public List<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new InvalidPostException("Search query cannot be empty");
+        }
+
+        final String searchQuery = (!caseSensitive) ? query.trim().toLowerCase()
+                : query.trim();
+
+        List<Post> posts = blogRepository.findAll();
+        return posts.stream()
+                .filter(post -> matchesSearchCriteria(post, searchQuery, caseSensitive, exactMatch))
+                .map(post -> new PostSummaryDTO(
+                        post.getId(),
+                        post.getTitle(),
+                        post.getCreatedAt()))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesSearchCriteria(Post post, String searchQuery, boolean caseSensitive, boolean exactMatch) {
+        String title = caseSensitive ? post.getTitle() : post.getTitle().toLowerCase();
+        String content = caseSensitive ? post.getContent() : post.getContent().toLowerCase();
+
+        if (exactMatch) {
+            return title.equals(searchQuery) || content.equals(searchQuery);
+        } else {
+            return title.contains(searchQuery) || content.contains(searchQuery);
+        }
+    }
 }

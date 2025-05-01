@@ -29,4 +29,6 @@ public interface BlogService {
     List<BlogPreviewDTO> getBlogPreviews();
 
     List<PostSummaryDTO> getRecentPosts(Pageable pageable);
+
+    List<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch);
 }
