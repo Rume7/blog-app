@@ -105,9 +105,24 @@ public class BlogController {
     @GetMapping(value = "/recent", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PostSummaryDTO>> getRecentPosts(
             @RequestParam(value = "limit", required = false) Integer limit) {
+        if (limit != null && limit <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
         int safeLimit = (limit != null) ? Math.min(limit, 10) : defaultRecentLimit;
         Pageable pageable = PageRequest.of(0, safeLimit);
         List<PostSummaryDTO> posts = blogService.getRecentPosts(pageable);
         return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<PostSummaryDTO>> searchPosts(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "true") boolean caseSensitive,
+            @RequestParam(required = false, defaultValue = "true") boolean exactMatch) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new InvalidPostException("Search query cannot be empty");
+        }
+        List<PostSummaryDTO> results = blogService.searchPosts(query.trim(), caseSensitive, exactMatch);
+        return ResponseEntity.ok(results);
     }
 }

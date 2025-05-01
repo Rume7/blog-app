@@ -3,11 +3,12 @@ package com.codehacks.blog.controller;
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.GlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.post.controller.BlogController;
+import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.post.controller.BlogController;
 import com.codehacks.blog.post.service.BlogService;
 import com.codehacks.blog.util.Constants;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,12 +60,14 @@ class BlogControllerTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private Author author;
+    private int defaultRecentLimit;
 
     @BeforeEach
     void setUp() {
         author = new Author();
         author.setFirstName("John");
         author.setLastName("Doe");
+        defaultRecentLimit = 5;     // Default value for testing
     }
 
     @Test
@@ -350,6 +353,165 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$.length()").value(limit)); // Ensure the length is 5
     }
 
+    @Test
+    void shouldReturnBlogPreviewsSuccessfully() throws Exception {
+        // Given
+        List<BlogPreviewDTO> mockPreviews = Arrays.asList(
+                new BlogPreviewDTO(1L, "First Post", "John Doe", "Preview content 1", LocalDateTime.now()),
+                new BlogPreviewDTO(2L, "Second Post", "Jane Smith", "Preview content 2", LocalDateTime.now())
+        );
+
+        // When
+        when(blogService.getBlogPreviews()).thenReturn(mockPreviews);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/previews")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("First Post"))
+                .andExpect(jsonPath("$[0].author").value("John Doe"))
+                .andExpect(jsonPath("$[0].previewContent").value("Preview content 1"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].title").value("Second Post"))
+                .andExpect(jsonPath("$[1].author").value("Jane Smith"))
+                .andExpect(jsonPath("$[1].previewContent").value("Preview content 2"));
+
+        verify(blogService, times(1)).getBlogPreviews();
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoBlogPreviewsExist() throws Exception {
+        // Given & When
+        when(blogService.getBlogPreviews()).thenReturn(Collections.emptyList());
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/previews")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(blogService, times(1)).getBlogPreviews();
+    }
+
+    @Test
+    void shouldHandleServiceExceptionWhenGettingBlogPreviews() throws Exception {
+        // Given & When
+        when(blogService.getBlogPreviews()).thenThrow(new RuntimeException("Database error"));
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/previews")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+
+        verify(blogService, times(1)).getBlogPreviews();
+    }
+
+    @Test
+    void shouldReturnRecentPostsWithDefaultLimit() throws Exception {
+        // Given
+        List<PostSummaryDTO> mockPosts = createMockPosts(defaultRecentLimit);
+
+        // When
+        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(defaultRecentLimit))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Post for day 1"))
+                .andExpect(jsonPath("$[0].createdAt").exists());
+
+        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+    }
+
+    @Test
+    void shouldReturnRecentPostsWithCustomLimit() throws Exception {
+        // Given
+        int customLimit = 3;
+        List<PostSummaryDTO> mockPosts = createMockPosts(customLimit);
+
+        // When
+        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + customLimit)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(customLimit))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Post for day 1"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].title").value("Post for day 2"))
+                .andExpect(jsonPath("$[2].id").value(3))
+                .andExpect(jsonPath("$[2].title").value("Post for day 3"));
+
+        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+    }
+
+    @Test
+    void shouldCapLimitAtMaximumValue() throws Exception {
+        // Given
+        int requestedLimit = 15; // Higher than the maximum allowed
+        int expectedLimit = 10; // Maximum allowed limit
+        List<PostSummaryDTO> mockPosts = createMockPosts(expectedLimit);
+
+        // When
+        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + requestedLimit)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(expectedLimit));
+
+        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoRecentPostsExist() throws Exception {
+        // Given & When
+        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(Collections.emptyList());
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+    }
+
+    @Test
+    void shouldHandleServiceExceptionWhenGettingRecentPosts() throws Exception {
+        // Given & When
+        when(blogService.getRecentPosts(any(Pageable.class))).thenThrow(new RuntimeException("Database error"));
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+
+        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+    }
+
+    @Test
+    void shouldHandleNegativeLimitParameter() throws Exception {
+        // Given
+        int negativeLimit = -5;
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
+                        .param("limit", String.valueOf(negativeLimit))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(blogService, times(0)).getRecentPosts(any(Pageable.class));
+    }
+
     // Helper method to generate mock data for posts
     private List<PostSummaryDTO> createMockPosts(int limit) {
         return IntStream.range(0, limit)
@@ -357,4 +519,180 @@ class BlogControllerTest {
                 .collect(Collectors.toList());
     }
 
+    @Test
+    void shouldReturnNotFoundWhenUpdatingNonExistentPost() throws Exception {
+        // Given
+        Long nonExistentPostId = 999L;
+        Post updateData = new Post("Updated Title", "Updated content", author);
+
+        // When
+        when(blogService.updatePost(any(Post.class), eq(nonExistentPostId)))
+                .thenThrow(new PostNotFoundException("Post not found with id: " + nonExistentPostId));
+
+        // Then
+        mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", nonExistentPostId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Post not found with id: " + nonExistentPostId));
+
+        verify(blogService, times(1)).updatePost(any(Post.class), eq(nonExistentPostId));
+    }
+
+    @Test
+    void shouldHandleInvalidPostDataDuringUpdate() throws Exception {
+        // Given
+        Long postId = 1L;
+        String invalidTitle = "A"; // Too short title
+
+        // When
+        when(blogService.updatePost(any(Post.class), eq(postId)))
+                .thenThrow(new InvalidPostException("Title length is too short"));
+
+        // Then
+        mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"" + invalidTitle + "\", \"content\":\"Updated content\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Title length is too short"));
+
+        verify(blogService, times(1)).updatePost(any(Post.class), eq(postId));
+    }
+
+    @Test
+    void shouldHandleServiceExceptionDuringUpdate() throws Exception {
+        // Given
+        Long postId = 1L;
+        Post updateData = new Post("Updated Title", "Updated content", author);
+
+        // When
+        when(blogService.updatePost(any(Post.class), eq(postId)))
+                .thenThrow(new RuntimeException("Database error"));
+
+        // Then
+        mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Updated Title\", \"content\":\"Updated content\"}"))
+                .andExpect(status().isInternalServerError());
+
+        verify(blogService, times(1)).updatePost(any(Post.class), eq(postId));
+    }
+
+    @Test
+    void shouldSearchPostsByTitleSuccessfully() throws Exception {
+        // Given
+        String searchTerm = "Spring";
+        List<PostSummaryDTO> mockResults = Arrays.asList(
+                new PostSummaryDTO(1L, "Spring Boot Tutorial", LocalDateTime.now()),
+                new PostSummaryDTO(2L, "Spring Security Guide", LocalDateTime.now())
+        );
+
+        // When
+        // When
+        when(blogService.searchPosts(eq(searchTerm), eq(true), eq(true))).thenReturn(mockResults);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
+                        .param("query", searchTerm)
+                        .param("caseSensitive", "true")
+                        .param("exactMatch", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].title").value("Spring Boot Tutorial"))
+                .andExpect(jsonPath("$[1].id").value(2))
+                .andExpect(jsonPath("$[1].title").value("Spring Security Guide"));
+
+        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(true));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoMatchingPostsFound() throws Exception {
+        // Given
+        String searchTerm = "NonexistentPost";
+
+        // When
+        when(blogService.searchPosts(eq(searchTerm), eq(true), eq(true))).thenReturn(Collections.emptyList());
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
+                        .param("query", searchTerm)
+                        .param("caseSensitive", "true")
+                        .param("exactMatch", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(true));
+    }
+
+    @Test
+    void shouldHandleInvalidSearchParameter() throws Exception {
+        // Given
+        String invalidSearchTerm = ""; // Empty search term
+
+        // When
+        when(blogService.searchPosts(eq(invalidSearchTerm), eq(true), eq(true)))
+                .thenThrow(new InvalidPostException("Search query cannot be empty"));
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
+                        .param("query", invalidSearchTerm)
+                        .param("caseSensitive", "true")
+                        .param("exactMatch", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Search query cannot be empty"));
+
+        verify(blogService, times(0)).searchPosts(eq(invalidSearchTerm), eq(true), eq(true));
+    }
+
+    @Test
+    void shouldSearchPostsCaseInsensitive() throws Exception {
+        // Given
+        String searchTerm = "spring";
+        List<PostSummaryDTO> mockResults = Arrays.asList(
+                new PostSummaryDTO(1L, "Spring Boot Tutorial", LocalDateTime.now()),
+                new PostSummaryDTO(2L, "SPRING Security Guide", LocalDateTime.now())
+        );
+
+        // When
+        when(blogService.searchPosts(eq(searchTerm), eq(false), eq(true))).thenReturn(mockResults);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
+                        .param("query", searchTerm)
+                        .param("caseSensitive", "false")
+                        .param("exactMatch", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(false), eq(true));
+    }
+
+    @Test
+    void shouldSearchPostsWithPartialMatch() throws Exception {
+        // Given
+        String searchTerm = "boot";
+        List<PostSummaryDTO> mockResults = Arrays.asList(
+                new PostSummaryDTO(1L, "Spring Boot Tutorial", LocalDateTime.now()),
+                new PostSummaryDTO(3L, "Bootcamp Guide", LocalDateTime.now())
+        );
+
+        // When
+        when(blogService.searchPosts(eq(searchTerm), eq(true), eq(false))).thenReturn(mockResults);
+
+        // Then
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
+                        .param("query", searchTerm)
+                        .param("caseSensitive", "true")
+                        .param("exactMatch", "false")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(false));
+    }
 }
