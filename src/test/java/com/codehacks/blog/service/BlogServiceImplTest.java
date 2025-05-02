@@ -2,6 +2,7 @@ package com.codehacks.blog.service;
 
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
+import com.codehacks.blog.post.exception.MissingAuthorException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.mapper.PostMapper;
 import com.codehacks.blog.post.model.Author;
@@ -9,6 +10,7 @@ import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.AuthorRepository;
 import com.codehacks.blog.post.repository.BlogRepository;
 import com.codehacks.blog.post.service.BlogServiceImpl;
+import com.codehacks.blog.util.Constants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +24,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,7 +67,7 @@ class BlogServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        testAuthor = new Author("Test", "Author");
+        testAuthor = new Author("Test", "Author", "author@testExample.com");
         testPost = new Post("Test Title", "Test Content", testAuthor);
 
         pageable = PageRequest.of(0, 7); // Let's assume we want 7 posts for the test case
@@ -83,6 +90,7 @@ class BlogServiceImplTest {
         // Given & When
         when(authorRepository.save(any(Author.class))).thenReturn(testAuthor);
         when(blogRepository.save(any(Post.class))).thenReturn(testPost);
+
         Post result = blogService.createPost(testPost);
 
         // Then
@@ -131,25 +139,31 @@ class BlogServiceImplTest {
     }
 
     @Test
-    void shouldUpdateExistingPost() {
+    void shouldUpdatePostSuccessfully() {
         // Given
         Long postId = 1L;
-        Author author = new Author("Larry", "Sally");
-        Post updatedPost = new Post("Updated Title", "Updated Content", author);
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("Updated Title", "Updated Content", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+        when(blogRepository.save(any(Post.class))).thenAnswer(invocation -> {
+            Post savedPost = invocation.getArgument(0);
+            savedPost.setId(postId);
+            return savedPost;
+        });
 
         // When
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(testPost));
-        when(blogRepository.save(any(Post.class))).thenReturn(updatedPost);
-
         Post result = blogService.updatePost(updatedPost, postId);
 
         // Then
         assertAll(
                 () -> assertNotNull(result),
                 () -> assertEquals(updatedPost.getTitle(), result.getTitle()),
-                () -> assertEquals(updatedPost.getContent(), result.getContent())
+                () -> assertEquals(updatedPost.getContent(), result.getContent()),
+                () -> assertNotNull(result.getUpdatedAt())
         );
-        verify(blogRepository).findById(postId);
+        verify(blogRepository).findByIdWithComments(postId);
         verify(blogRepository).save(any(Post.class));
     }
 
@@ -158,14 +172,68 @@ class BlogServiceImplTest {
         // Given
         Long nonExistentId = 999L;
         Post updatePost = new Post("Title", "Content", testAuthor);
+        when(blogRepository.findByIdWithComments(nonExistentId)).thenReturn(Optional.empty());
 
-        // When
+        // When & Then
         PostNotFoundException exception = assertThrows(PostNotFoundException.class,
                 () -> blogService.updatePost(updatePost, nonExistentId));
 
-        // Then
         assertEquals("Post not found with id: " + nonExistentId, exception.getMessage());
+        verify(blogRepository).findByIdWithComments(nonExistentId);
         verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithInvalidId() {
+        // Given
+        Long invalidId = -1L;
+        Post updatePost = new Post("Title", "Content", testAuthor);
+        when(blogRepository.findByIdWithComments(invalidId)).thenReturn(Optional.empty());
+
+        // When & Then
+        PostNotFoundException exception = assertThrows(PostNotFoundException.class,
+                () -> blogService.updatePost(updatePost, invalidId));
+
+        assertEquals("Post not found with id: " + invalidId, exception.getMessage());
+        verify(blogRepository).findByIdWithComments(invalidId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingWithNullPost() {
+        // Given
+        Long postId = 1L;
+
+        // When & Then
+        assertThrows(PostNotFoundException.class,
+                () -> blogService.updatePost(null, postId));
+
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldPreserveAuthorWhenUpdatingPost() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("Updated Title", "Updated Content", new Author("New", "Author", "newAuthor@test.com"));
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+        when(blogRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        Post result = blogService.updatePost(updatedPost, postId);
+
+        // Then
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(updatedPost.getTitle(), result.getTitle()),
+                () -> assertEquals(updatedPost.getContent(), result.getContent()),
+                () -> assertEquals(testAuthor.getFirstName(), result.getAuthor().getFirstName()),
+                () -> assertEquals(testAuthor.getLastName(), result.getAuthor().getLastName())
+        );
+
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository).save(any(Post.class));
     }
 
     @ParameterizedTest
@@ -238,6 +306,7 @@ class BlogServiceImplTest {
                 new Post("Test Post 1", "Content 1", testAuthor),
                 new Post("Test Post 2", "Content 2", testAuthor)
         );
+
         when(blogRepository.findByTitleContainingIgnoreCase(searchTitle))
                 .thenReturn(filteredPosts);
 
@@ -269,10 +338,214 @@ class BlogServiceImplTest {
 
     private static Stream<Arguments> provideInvalidPostTitles() {
         return Stream.of(
-                Arguments.of("", "Title cannot be null or empty or only whitespace"),
-                Arguments.of(" ", "Title cannot be null or empty or only whitespace"),
-                Arguments.of("ab", "Title length is too short")
+                Arguments.of("", "Title is too short"),
+                Arguments.of(" ", "Title is too short"),
+                Arguments.of("ab", "Title is too short")
         );
+    }
+
+    @Test
+    void shouldValidatePostContentLength() {
+        // Given
+        Post post = new Post("Valid Title", "Short", testAuthor);
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.createPost(post));
+
+        assertEquals("Content is too short", exception.getMessage());
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingPostWithNullContent() {
+        // Given
+        Post post = new Post("Valid Title", null, testAuthor);
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.createPost(post));
+
+        assertEquals("Content cannot be null nor empty", exception.getMessage());
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingPostWithWhitespaceOnlyTitle() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("   ", "Valid Content", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Title is too short", exception.getMessage());
+
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenUpdatingPostWithWhitespaceOnlyContent() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("Valid Title", "   ", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Content is too short", exception.getMessage());
+
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldValidateUpdatedTitleLength() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("Short", "Updated Content", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Title is too short", exception.getMessage());
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldValidateUpdatedContentLength() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("Valid Title", "Short", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Content is too short", exception.getMessage());
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldValidateUpdatedContentMaximumLength() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        String longContent = "a".repeat(Constants.MAX_CONTENT_LENGTH + 1);
+        Post updatedPost = new Post("Valid Title", longContent, testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Content is too long", exception.getMessage());
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldValidateUpdatedTitleMaximumLength() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        String longTitle = "a".repeat(Constants.MAX_TITLE_LENGTH + 1);
+        Post updatedPost = new Post(longTitle, "Valid Content", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Title is too long", exception.getMessage());
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldValidateUpdatedTitleIsNotNullOrEmpty() {
+        // Given
+        Long postId = 1L;
+        Post existingPost = new Post("Original Title", "Original Content", testAuthor);
+        Post updatedPost = new Post("", "Valid Content", testAuthor);
+        existingPost.setId(1L);
+
+        when(blogRepository.findByIdWithComments(postId)).thenReturn(Optional.of(existingPost));
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.updatePost(updatedPost, postId));
+
+        assertEquals("Title is too short", exception.getMessage());
+        verify(blogRepository).findByIdWithComments(postId);
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingPostWithNullAuthor() {
+        // Given
+        Post post = new Post("Valid Title", "Valid content that is long enough to pass validation", null);
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.createPost(post));
+
+        assertEquals("Valid author details are required", exception.getMessage());
+        verify(blogRepository, never()).save(any(Post.class));
+    }
+
+    // This method ensure that the author's email is not updated when a post is created or updated.
+    // Admin can change author's email in the future.
+    @Test
+    void shouldHandleExistingAuthorWithDifferentEmail() throws InvalidPostException {
+        // Given
+        Author existingAuthor = new Author("Test", "Author", "test@example.com");
+        Author newAuthor = new Author("Test", "Author", "different@example.com");
+
+        Post post = new Post("Valid Title", "Valid content that is long enough to pass validation", newAuthor);
+
+        when(authorRepository.findByEmail(any())).thenReturn(existingAuthor);
+        when(blogRepository.save(any(Post.class))).thenReturn(post);
+
+        // When
+        Post result = blogService.createPost(post);
+
+        // Then
+        assertAll(
+                () -> assertNotNull(result),
+                () -> assertEquals(post.getTitle(), result.getTitle()),
+                () -> assertEquals(post.getContent(), result.getContent()),
+                () -> assertEquals(existingAuthor.getEmail(), result.getAuthor().getEmail())
+        );
+
+        verify(authorRepository, times(1)).findByEmail(any());
+        verify(blogRepository).save(any(Post.class));
     }
 
     @Test
@@ -346,5 +619,151 @@ class BlogServiceImplTest {
         assertNotNull(result);
         assertEquals(5, result.size());
         verify(blogRepository, times(1)).findTopNRecentPostsOrderByCreatedAt(any(Pageable.class));
+    }
+
+    @Test
+    void shouldSearchPostsWithExactMatch() {
+        // Given
+        String searchQuery = "Spring Boot";
+        List<Post> mockPosts = Arrays.asList(
+                new Post("Spring Boot", "Content 1", testAuthor),
+                new Post("Spring Boot", "Content 2", testAuthor),
+                new Post("Spring Framework", "Content 3", testAuthor)
+        );
+        when(blogRepository.findAll()).thenReturn(mockPosts);
+        when(postMapper.toSummary(any(Post.class))).thenAnswer(invocation -> {
+            Post post = invocation.getArgument(0);
+            return new PostSummaryDTO(post.getId(), post.getTitle(), post.getCreatedAt());
+        });
+
+        // When
+        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, true);
+
+        // Then
+        assertAll(
+                () -> assertNotNull(results),
+                () -> assertEquals(2, results.size()),
+                () -> assertTrue(results.stream()
+                        .allMatch(post -> post.getTitle().equals(searchQuery)))
+        );
+        verify(blogRepository, times(1)).findAll();
+        verify(postMapper, times(2)).toSummary(any(Post.class));
+    }
+
+    @Test
+    void shouldSearchPostsWithPartialMatch() {
+        // Given
+        String searchQuery = "Spring";
+        List<Post> mockPosts = Arrays.asList(
+                new Post("Spring Boot", "Content 1", testAuthor),
+                new Post("Spring Framework", "Content 2", testAuthor),
+                new Post("Java Tutorial", "Content 3", testAuthor)
+        );
+        when(blogRepository.findAll()).thenReturn(mockPosts);
+        when(postMapper.toSummary(any(Post.class))).thenAnswer(invocation -> {
+            Post post = invocation.getArgument(0);
+            return new PostSummaryDTO(post.getId(), post.getTitle(), post.getCreatedAt());
+        });
+
+        // When
+        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, false);
+
+        // Then
+        assertAll(
+                () -> assertNotNull(results),
+                () -> assertEquals(2, results.size()),
+                () -> assertTrue(results.stream()
+                        .allMatch(post -> post.getTitle().contains(searchQuery)))
+        );
+        verify(blogRepository, times(1)).findAll();
+        verify(postMapper, times(2)).toSummary(any(Post.class));
+    }
+
+    @Test
+    void shouldSearchPostsCaseInsensitive() {
+        // Given
+        String searchQuery = "spring";
+        List<Post> mockPosts = Arrays.asList(
+                new Post("Spring Boot", "Content 1", testAuthor),
+                new Post("SPRING Framework", "Content 2", testAuthor),
+                new Post("Java Tutorial", "Content 3", testAuthor)
+        );
+        when(blogRepository.findAll()).thenReturn(mockPosts);
+        when(postMapper.toSummary(any(Post.class))).thenAnswer(invocation -> {
+            Post post = invocation.getArgument(0);
+            return new PostSummaryDTO(post.getId(), post.getTitle(), post.getCreatedAt());
+        });
+
+        // When
+        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, false, false);
+
+        // Then
+        assertAll(
+                () -> assertNotNull(results),
+                () -> assertEquals(2, results.size()),
+                () -> assertTrue(results.stream()
+                        .allMatch(post -> post.getTitle().toLowerCase().contains(searchQuery.toLowerCase())))
+        );
+        verify(blogRepository, times(1)).findAll();
+        verify(postMapper, times(2)).toSummary(any(Post.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenSearchQueryIsEmpty() {
+        // Given
+        String emptyQuery = "";
+
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.searchPosts(emptyQuery, true, true));
+
+        assertEquals("Search query cannot be empty", exception.getMessage());
+        verify(blogRepository, never()).findAll();
+    }
+
+    @Test
+    void shouldThrowExceptionWhenSearchingWithWhitespaceOnlyQuery() {
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.searchPosts("   ", true, true));
+
+        assertEquals("Search query cannot be empty", exception.getMessage());
+        verify(blogRepository, never()).findAll();
+    }
+
+    @Test
+    void shouldThrowExceptionWhenGettingPostWithNullId() {
+        // When & Then
+        assertThrows(PostNotFoundException.class,
+                () -> blogService.getPostById(null));
+        verify(blogRepository, never()).findByIdWithComments(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenGettingRecentPostsWithNullPageable() {
+        // When & Then
+        assertThrows(PostNotFoundException.class,
+                () -> blogService.getRecentPosts(null));
+
+        verify(blogRepository, never()).findTopNRecentPostsOrderByCreatedAt(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenGettingPostsByNullAuthor() {
+        // When & Then
+        assertThrows(MissingAuthorException.class,
+                () -> blogService.getPostsByAuthor(null));
+
+        verify(blogRepository, never()).findByAuthor(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenSearchingWithNullQuery() {
+        // When & Then
+        InvalidPostException exception = assertThrows(InvalidPostException.class,
+                () -> blogService.searchPosts(null, true, true));
+
+        assertEquals("Search query cannot be empty", exception.getMessage());
+        verify(blogRepository, never()).findAll();
     }
 }

@@ -744,7 +744,7 @@ class BlogControllerTest {
     @Test
     void shouldGetPostsByAuthorSuccessfully() throws Exception {
         // Given
-        Author authorName = new Author("John", "Doe");
+        Author authorName = new Author("John", "Doe", "john.doe@example.com");
         List<Post> mockResults = Arrays.asList(
                 new Post("Post 1 for content 1", "First Post by John", authorName),
                 new Post("Post 2 for content 2", "Second Post by John", authorName)
@@ -754,9 +754,10 @@ class BlogControllerTest {
         when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(mockResults);
 
         // Then
-        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search/author")
                         .param("firstName", authorName.getFirstName())
                         .param("lastName", authorName.getLastName())
+                        .param("email", authorName.getEmail())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
@@ -767,15 +768,16 @@ class BlogControllerTest {
     @Test
     void shouldReturnEmptyListWhenAuthorHasNoPosts() throws Exception {
         // Given
-        Author authorName = new Author("Jane", "Smith");
+        Author authorName = new Author("Jane", "Smith", "jane.smith@example.com");
 
         // When
         when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(Collections.emptyList());
 
         // Then
-        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search/author")
                         .param("firstName", authorName.getFirstName())
                         .param("lastName", authorName.getLastName())
+                        .param("email", authorName.getEmail())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -786,16 +788,17 @@ class BlogControllerTest {
     @Test
     void shouldHandleInvalidAuthorData() throws Exception {
         // Given
-        Author invalidAuthorName = new Author("", "");
+        Author invalidAuthorName = new Author("", "", "");
 
         // When
         when(blogService.getPostsByAuthor(eq(author)))
                 .thenThrow(new InvalidPostException("Author name cannot be empty"));
 
         // Then
-        mockMvc.perform(get(Constants.BLOG_PATH + "/author")
+        mockMvc.perform(get(Constants.BLOG_PATH + "/search/author")
                         .param("firstName", invalidAuthorName.getFirstName())
                         .param("lastName", invalidAuthorName.getLastName())
+                        .param("email", invalidAuthorName.getEmail())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Author name cannot be empty"));
