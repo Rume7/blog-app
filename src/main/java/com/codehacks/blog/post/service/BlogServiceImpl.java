@@ -3,6 +3,7 @@ package com.codehacks.blog.post.service;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
+import com.codehacks.blog.post.exception.MissingAuthorException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.mapper.PostMapper;
 import com.codehacks.blog.post.model.Author;
@@ -20,6 +21,8 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,43 +57,78 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public List<Post> getPostsByAuthor(Author authorName) {
+        if (authorName == null) {
+            throw new MissingAuthorException("Author can't be null");
+        }
         return blogRepository.findByAuthor(authorName);
     }
 
     @Override
     @Transactional
-    public Post createPost(Post post) throws InvalidPostException {
-        if (post.getTitle() == null || post.getTitle().trim().isEmpty()) {
-            throw new InvalidPostException("Title cannot be null or empty or only whitespace");
-        }
-        if (post.getTitle().trim().length() < Constants.MIN_TITLE_LENGTH) {
-            throw new InvalidPostException("Title length is too short");
-        }
-        if (post.getTitle().trim().length() > Constants.MAX_TITLE_LENGTH) {
-            throw new InvalidPostException("Title length is too long");
-        }
+    public Post createPost(Post post) {
+        validatePost(post);
 
         post.setTitle(post.getTitle().trim());
+        post.setContent(post.getContent().trim());
 
-        Author existingAuthor = authorRepository.findByEmail(post.getAuthor().getEmail());
-        if (existingAuthor != null) {
-            post.setAuthor(existingAuthor);
-        } else {
-            Author savedAuthor = authorRepository.save(post.getAuthor());
-            post.setAuthor(savedAuthor);
-        }
+        Author author = resolveAuthor(post.getAuthor());
+        post.setAuthor(author);
 
         return blogRepository.save(post);
+    }
+
+    private void validatePost(Post post) {
+        Objects.requireNonNull(post, "Post cannot be null");
+
+        String title = Optional.ofNullable(post.getTitle())
+                .map(String::trim)
+                .orElseThrow(() -> new InvalidPostException("Title cannot be null or empty"));
+
+        if (title.length() < Constants.MIN_TITLE_LENGTH) {
+            throw new InvalidPostException("Title is too short");
+        }
+
+        if (title.length() > Constants.MAX_TITLE_LENGTH) {
+            throw new InvalidPostException("Title is too long");
+        }
+
+        String content = Optional.ofNullable(post.getContent())
+                .map(String::trim)
+                .orElseThrow(() -> new InvalidPostException("Content cannot be null nor empty"));
+
+        if (content.length() < 10) {
+            throw new InvalidPostException("Content is too short");
+        }
+
+        if (content.length() > Constants.MAX_CONTENT_LENGTH) {
+            throw new InvalidPostException("Content is too long");
+        }
+
+        Author author = post.getAuthor();
+        if (author == null
+                || author.getFirstName().isBlank()
+                || author.getLastName().isBlank()
+                || author.getEmail() == null
+                || author.getEmail().isBlank()) {
+            throw new InvalidPostException("Valid author details are required");
+        }
+    }
+
+    private Author resolveAuthor(Author author) {
+        return Optional.ofNullable(authorRepository.findByEmail(author.getEmail()))
+                .orElseGet(() -> authorRepository.save(author));
     }
 
     @Override
     @Transactional
     public Post updatePost(Post post, Long blogId) {
-        Post blogPost = blogRepository.findById(blogId)
+        Post blogPost = blogRepository.findByIdWithComments(blogId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + blogId));
 
-        blogPost.setTitle(post.getTitle());
-        blogPost.setContent(post.getContent());
+        validatePost(post);
+
+        blogPost.setTitle(post.getTitle().trim());
+        blogPost.setContent(post.getContent().trim());
         blogPost.setUpdatedAt(LocalDateTime.now());
 
         return blogRepository.save(blogPost);
@@ -154,6 +192,10 @@ public class BlogServiceImpl implements BlogService {
     }
 
     public List<PostSummaryDTO> getRecentPosts(Pageable pageable) {
+        if (pageable == null) {
+            throw new PostNotFoundException("There should be a number of posts.");
+        }
+
         return blogRepository.findTopNRecentPostsOrderByCreatedAt(pageable)
                 .stream()
                 .map(postMapper::toSummary)
@@ -172,10 +214,7 @@ public class BlogServiceImpl implements BlogService {
         List<Post> posts = blogRepository.findAll();
         return posts.stream()
                 .filter(post -> matchesSearchCriteria(post, searchQuery, caseSensitive, exactMatch))
-                .map(post -> new PostSummaryDTO(
-                        post.getId(),
-                        post.getTitle(),
-                        post.getCreatedAt()))
+                .map(postMapper::toSummary)
                 .collect(Collectors.toList());
     }
 

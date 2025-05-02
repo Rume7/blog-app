@@ -80,6 +80,8 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, Constants.BLOG_PATH + "/create").hasAnyRole("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.PUT, Constants.BLOG_PATH + "/update/{id}").hasAnyRole("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.DELETE, Constants.BLOG_PATH + "/delete/{id}").hasAnyRole("ADMIN", "AUTHOR")
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/search").authenticated()
+                            .requestMatchers(HttpMethod.GET, Constants.BLOG_PATH + "/search/author").hasAnyRole("ADMIN", "AUTHOR")
                             .requestMatchers(HttpMethod.POST, Constants.COMMENT_PATH + "/{postId}/comments").authenticated()
                             .requestMatchers(HttpMethod.PUT, Constants.COMMENT_PATH + "/update/{postId}/{commentId}").authenticated()
                             .requestMatchers(HttpMethod.GET, Constants.COMMENT_PATH + "/{id}").authenticated()

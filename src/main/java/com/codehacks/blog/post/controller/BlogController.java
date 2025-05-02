@@ -127,12 +127,14 @@ public class BlogController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping(value = "/author", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Post>> getPostsByAuthor(@RequestParam String firstName, String lastName) {
-        if (firstName == null || firstName.trim().isEmpty() || lastName == null || lastName.trim().isEmpty()) {
+    @GetMapping(value = "/search/author", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Post>> getPostsByAuthor(@RequestParam String firstName, String lastName, String email) {
+        if (firstName == null || firstName.trim().isEmpty()
+                || lastName == null || lastName.trim().isEmpty()
+                || email == null || email.trim().isEmpty()) {
             throw new InvalidPostException("Author name cannot be empty");
         }
-        Author author = new Author(firstName, lastName);
+        Author author = new Author(firstName, lastName, email);
         List<Post> posts = blogService.getPostsByAuthor(author);
         return ResponseEntity.ok(posts);
     }

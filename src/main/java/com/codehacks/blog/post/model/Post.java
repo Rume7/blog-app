@@ -57,15 +57,15 @@ public class Post {
     private List<Comment> comments = new ArrayList<>();
 
     public Post(String title, String content, Author author) {
-        this.title = title != null ? title.trim() : null;
-        this.content = content != null ? content.trim() : null;
-        this.author = new Author(author.getFirstName(), author.getLastName());
+        this.title = (title != null) ? title.trim() : null;
+        this.content = (content != null) ? content.trim() : null;
+        this.author = (author != null) ? new Author(author.getFirstName(), author.getLastName(), author.getEmail()) : null;
     }
 
     public Post(String title, String content, Author author, LocalDateTime createdAt) {
         this.title = title != null ? title.trim() : null;
         this.content = content != null ? content.trim() : null;
-        this.author = new Author(author.getFirstName(), author.getLastName());
+        this.author = (author != null) ? new Author(author.getFirstName(), author.getLastName(), author.getEmail()) : null;
         this.createdAt = createdAt;
     }
 
