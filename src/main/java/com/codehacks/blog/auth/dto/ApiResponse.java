@@ -1,12 +1,16 @@
 package com.codehacks.blog.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private boolean success;
     private String message;
@@ -14,9 +18,9 @@ public class ApiResponse<T> {
     private LocalDateTime timestamp;
 
     public ApiResponse(boolean success, String message, T data) {
-        this.data = data;
-        this.message = message;
         this.success = success;
+        this.message = message;
+        this.data = data;
         this.timestamp = LocalDateTime.now();
     }
 

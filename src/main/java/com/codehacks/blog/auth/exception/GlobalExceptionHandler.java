@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +53,23 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toList());
 
         logger.error("Validation errors: {}", errors);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(errors.toString()));
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiResponse<Object>> handleParameterValidationException(HandlerMethodValidationException ex) {
+        List<String> errors = ex.getAllValidationResults()
+                .stream()
+                .map(result -> result.getResolvableErrors().stream()
+                        .map(error -> error.getDefaultMessage())
+                        .collect(Collectors.joining(", ")))
+                .collect(Collectors.toList());
+
+        logger.error("Parameter validation errors: {}", errors);
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)

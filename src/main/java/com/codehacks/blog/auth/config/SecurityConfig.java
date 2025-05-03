@@ -44,6 +44,31 @@ public class SecurityConfig {
     @Value("${spring.web.cors.allowed-origins:*}")
     private String allowedOrigins;
 
+    private static final String[] WHITELIST = {
+            "/api/v1/auth/**",
+            "/v2/api-docs",
+            "/v3/api-docs",
+            "/v3/api-docs/**",
+            "/swagger-resources",
+            "/swagger-resources/**",
+            "/configuration/ui",
+            "/configuration/security",
+            "/swagger-ui/**",
+            "/webjars/**",
+            "/swagger-ui.html"
+    };
+
+    private static final String[] SUBSCRIPTION_PUBLIC_ENDPOINTS = {
+            Constants.SUBSCRIPTION_PATH + "/subscribe",
+            Constants.SUBSCRIPTION_PATH + "/unsubscribe",
+            Constants.SUBSCRIPTION_PATH + "/resubscribe"
+    };
+
+    private static final String[] SUBSCRIPTION_AUTHENTICATED_ENDPOINTS = {
+            Constants.SUBSCRIPTION_PATH + "/active",
+            Constants.SUBSCRIPTION_PATH + "/status"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.debug("Configuring SecurityFilterChain");
@@ -62,11 +87,10 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> {
                     auth
-                            .requestMatchers(
-                                    "/v3/api-docs/**",
-                                    "/swagger-ui/**",
-                                    "/swagger-ui.html"
-                            ).permitAll()
+                            .requestMatchers(WHITELIST).permitAll()
+                            .requestMatchers(HttpMethod.POST, SUBSCRIPTION_PUBLIC_ENDPOINTS).permitAll()
+                            .requestMatchers(HttpMethod.GET, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[0]).authenticated()
+                            .requestMatchers(HttpMethod.PUT, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[1]).authenticated()
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/register").permitAll()
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/login").permitAll()
                             .requestMatchers("/error").permitAll()
