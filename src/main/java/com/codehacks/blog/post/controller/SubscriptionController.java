@@ -29,16 +29,6 @@ import java.util.List;
 
 /**
  * Controller for managing email subscriptions.
- * <p>
- * API Design Pattern:
- * - Complex operations (create/update with multiple fields) use @RequestBody with DTOs
- * - Simple operations (state changes with single parameter) use @RequestParam
- * <p>
- * This pattern provides:
- * 1. Clear indication of operation complexity
- * 2. Simpler client implementation for basic operations
- * 3. Better maintainability as the API grows
- * 4. Follows the principle of least surprise
  */
 @Slf4j
 @RestController
@@ -72,19 +62,12 @@ public class SubscriptionController {
     public ResponseEntity<ApiResponse<Subscriber>> subscribe(
             @Valid @RequestBody SubscriberDTO subscriberDTO) {
         log.info("Received subscription request for email: {}", subscriberDTO.email());
-        try {
-            Subscriber subscriber = subscriptionService.subscribe(subscriberDTO.email());
-            ApiResponse<Subscriber> response = ApiResponse.created(subscriber);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(response);
-        } catch (Exception e) {
-            log.error("Error processing subscription for email: {}", subscriberDTO.email(), e);
-            ApiResponse<Subscriber> errorResponse = ApiResponse.error("Failed to process subscription: " + e.getMessage());
-            return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(errorResponse);
-        }
+
+        Subscriber subscriber = subscriptionService.subscribe(subscriberDTO.email());
+        ApiResponse<Subscriber> response = ApiResponse.created(subscriber);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @Operation(
@@ -108,17 +91,10 @@ public class SubscriptionController {
     @PostMapping(value = "/unsubscribe", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<String>> unsubscribe(
             @Valid @RequestParam @Email(message = "Invalid email format") String email) {
-        try {
-            subscriptionService.unsubscribe(email);
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success("Successfully unsubscribed"));
-        } catch (Exception e) {
-            log.error("Error processing un-subscription for email: {}", email, e);
-            return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Failed to process un-subscription: " + e.getMessage()));
-        }
+        subscriptionService.unsubscribe(email);
+
+        return ResponseEntity.ok()
+                .body(ApiResponse.success("Successfully unsubscribed"));
     }
 
     @Operation(
@@ -136,6 +112,10 @@ public class SubscriptionController {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
                             responseCode = "400",
                             description = "Invalid email format"
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = "Subscriber not found"
                     )
             }
     )
@@ -144,22 +124,13 @@ public class SubscriptionController {
     public ResponseEntity<ApiResponse<Subscriber>> resubscribe(
             @Valid @RequestParam @Email(message = "Invalid email format") String email) {
         log.info("Received re-subscription request for email: {}", email);
-        try {
-            subscriptionService.resubscribe(email);
-            Subscriber subscriber = subscriptionService.getActiveSubscribers().stream()
-                    .filter(s -> s.getEmail().equals(email))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Subscriber not found after re-subscription"));
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success(subscriber));
-        } catch (Exception e) {
-            log.error("Error processing re-subscription for email: {}", email, e);
-            return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Failed to process re-subscription: " + e.getMessage()));
-        }
+
+        Subscriber subscriber = subscriptionService.resubscribe(email);
+
+        return ResponseEntity.ok()
+                .body(ApiResponse.success(subscriber));
     }
+
 
     @Operation(
             summary = "Get all active subscribers",
@@ -182,16 +153,10 @@ public class SubscriptionController {
     @GetMapping(value = "/active", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<List<Subscriber>>> getActiveSubscribers() {
         log.info("Retrieving all active subscribers");
-        try {
-            List<Subscriber> subscribers = subscriptionService.getActiveSubscribers();
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.success(subscribers));
-        } catch (Exception e) {
-            log.error("Error retrieving active subscribers", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error("Failed to retrieve subscribers: " + e.getMessage()));
-        }
+
+        List<Subscriber> subscribers = subscriptionService.getActiveSubscribers();
+
+        return ResponseEntity.ok()
+                .body(ApiResponse.success(subscribers));
     }
 }

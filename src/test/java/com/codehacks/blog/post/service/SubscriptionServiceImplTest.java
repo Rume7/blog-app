@@ -1,5 +1,6 @@
 package com.codehacks.blog.post.service;
 
+import com.codehacks.blog.post.exception.DuplicateSubscriptionException;
 import com.codehacks.blog.post.exception.SubscriberNotFoundException;
 import com.codehacks.blog.post.model.Subscriber;
 import com.codehacks.blog.post.model.SubscriptionStatus;
@@ -69,22 +70,22 @@ class SubscriptionServiceImplTest {
     }
 
     @Test
-    void subscribe_ExistingActiveSubscriber_ShouldDoNothing() {
+    void subscribe_ExistingActive_ShouldThrowDuplicateSubscriptionException() {
         // Given
-        String email = "test@example.com";
-        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.ofNullable(activeSubscriber));
+        String email = "new@example.com";
 
-        // When
-        Subscriber result = subscriptionService.subscribe(email);
+        Subscriber existing = new Subscriber(email);
+        existing.setStatus(SubscriptionStatus.ACTIVE);
+        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.of(existing));
 
-        // Then
-        assertNull(result);
-
-        verify(subscriberRepository, never()).save(any(Subscriber.class));
+        // Expect
+        assertThrows(DuplicateSubscriptionException.class, () -> subscriptionService.subscribe(email));
+        verify(subscriberRepository, never()).save(any());
     }
 
+
     @Test
-    void subscribe_ExistingUnsubscribedSubscriber_ShouldResubscribe() {
+    void subscribe_ExistingInactiveSubscriber_ShouldResubscribe() {
         // Given
         String email = "unsubscribed@example.com";
 
@@ -105,19 +106,22 @@ class SubscriptionServiceImplTest {
     @Test
     void unsubscribe_ExistingSubscriber_ShouldUpdateStatus() {
         // Given
-        String email = "test@example.com";
-        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.ofNullable(activeSubscriber));
-        when(subscriberRepository.save(any(Subscriber.class))).thenAnswer(i -> i.getArgument(0));
+        String email = "existing@example.com";
+        Subscriber existingSubscriber = new Subscriber(email);
+        existingSubscriber.setStatus(SubscriptionStatus.ACTIVE);
+
+        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.of(existingSubscriber));
 
         // When
         subscriptionService.unsubscribe(email);
 
         // Then
-        verify(subscriberRepository).save(argThat(subscriber ->
-                subscriber.getStatus() == SubscriptionStatus.UNSUBSCRIBED &&
-                        subscriber.getUnsubscribedAt() != null
-        ));
+        assertEquals(SubscriptionStatus.UNSUBSCRIBED, existingSubscriber.getStatus());
+        assertNotNull(existingSubscriber.getUnsubscribedAt());
+
+        verify(subscriberRepository).save(existingSubscriber);
     }
+
 
     @Test
     void unsubscribe_NonExistentSubscriber_ShouldDoNothing() {
@@ -136,15 +140,31 @@ class SubscriptionServiceImplTest {
     void resubscribe_ExistingUnsubscribedSubscriber_ShouldUpdateStatus() {
         // Given
         String email = "unsubscribed@example.com";
-        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.ofNullable(unsubscribedSubscriber));
+        unsubscribedSubscriber = new Subscriber(email);
+        unsubscribedSubscriber.setStatus(SubscriptionStatus.UNSUBSCRIBED);
+
+        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.of(unsubscribedSubscriber));
         when(subscriberRepository.save(any(Subscriber.class))).thenAnswer(i -> i.getArgument(0));
 
         // When
         subscriptionService.resubscribe(email);
 
         // Then
+        assertEquals(SubscriptionStatus.ACTIVE, unsubscribedSubscriber.getStatus());
         verify(subscriberRepository, times(1)).findByEmail(email);
         verify(subscriberRepository, times(1)).save(unsubscribedSubscriber);
+    }
+
+    @Test
+    void resubscribe_NonExistent_ShouldThrow() {
+        // Given
+        String email = "non-existent/@example.com";
+
+        when(subscriberRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // Expect
+        assertThrows(SubscriberNotFoundException.class, () -> subscriptionService.resubscribe(email));
+        verify(subscriberRepository, never()).save(any());
     }
 
     @Test
@@ -162,6 +182,4 @@ class SubscriptionServiceImplTest {
         assertEquals(1, result.size());
         assertEquals(SubscriptionStatus.ACTIVE, result.get(0).getStatus());
     }
-
-
 } 

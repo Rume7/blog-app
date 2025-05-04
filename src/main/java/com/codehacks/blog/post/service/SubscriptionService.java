@@ -10,7 +10,7 @@ public interface SubscriptionService {
 
     void unsubscribe(String email);
 
-    void resubscribe(String email);
+    Subscriber resubscribe(String email);
 
     List<Subscriber> getActiveSubscribers();
 } 
