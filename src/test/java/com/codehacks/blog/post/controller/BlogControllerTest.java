@@ -1,7 +1,7 @@
 package com.codehacks.blog.post.controller;
 
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
-import com.codehacks.blog.auth.exception.GlobalExceptionHandler;
+import com.codehacks.blog.auth.exception.AuthGlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
@@ -49,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(BlogController.class)
-@Import(GlobalExceptionHandler.class)
+@Import(AuthGlobalExceptionHandler.class)
 class BlogControllerTest {
 
     @Autowired

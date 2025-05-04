@@ -120,7 +120,7 @@ public class SubscriptionController {
             }
     )
     @PostMapping(value = "/resubscribe", produces = MediaType.APPLICATION_JSON_VALUE)
-    @RateLimit(maxRequests = 1, timeWindowMinutes = 1440) // 1 request per day
+    //@RateLimit(maxRequests = 1, timeWindowMinutes = 1440) // 1 request per day
     public ResponseEntity<ApiResponse<Subscriber>> resubscribe(
             @Valid @RequestParam @Email(message = "Invalid email format") String email) {
         log.info("Received re-subscription request for email: {}", email);

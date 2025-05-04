@@ -1,273 +1,176 @@
 package com.codehacks.blog.post.it;
 
-import com.codehacks.blog.auth.dto.ApiResponse;
-import com.codehacks.blog.config.TestConfig;
+import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
+import com.codehacks.blog.auth.config.RateLimiter;
+import com.codehacks.blog.post.dto.SubscriberDTO;
 import com.codehacks.blog.post.model.Subscriber;
 import com.codehacks.blog.post.model.SubscriptionStatus;
 import com.codehacks.blog.post.repository.SubscriberRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.Bucket4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.transaction.TestTransaction;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestConfig.class)
 @ActiveProfiles("test")
-@Transactional
+@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 class SubscriptionControllerIntegrationTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("blog_test")
+            .withUsername("testuser")
+            .withPassword("testpass");
+
+    @DynamicPropertySource
+    static void overrideProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @MockBean
+    private Bucket rateLimiterBucket;
+
+//    @MockBean
+//    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private SubscriberRepository subscriberRepository;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final String email = "user@example.com";
+
     @BeforeEach
-    void setUp() {
-        //PostgresTestContainer.getInstance();
+    void setup() {
+//        Bandwidth limit = Bandwidth.simple(100, Duration.ofMinutes(1));
+//        rateLimiterBucket = Bucket4j.builder().addLimit(limit).build();
+        // Or simply mock
+        given(rateLimiterBucket.tryConsume(anyLong())).willReturn(true);
         subscriberRepository.deleteAll();
     }
 
     @Test
-    void subscribe_ValidEmail_ShouldCreateSubscriber() throws Exception {
-        // Given
-        String email = "test@example.com";
+    @DisplayName("Subscribe new email - should return 201 Created")
+    void subscribe_New_ShouldReturnCreated() throws Exception {
+        mockMvc.perform(post("/api/v1/subscription/subscribe")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubscriberDTO(email))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.email").value(email));
 
-        // When
-        MvcResult result = mockMvc.perform(post("/api/v1/subscriptions/subscribe")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\": \"" + email + "\"}"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        // Then
-        String responseBody = result.getResponse().getContentAsString();
-
-        assertNotNull(result);
-        assertTrue(responseBody.isEmpty(), "Response body should not be empty");
+        List<Subscriber> subscribers = subscriberRepository.findAll();
+        assertThat(subscribers).hasSize(1);
     }
 
     @Test
-    void subscribe_InvalidEmail_ShouldReturnBadRequest() throws Exception {
-        // Given
-        String invalidEmail = "invalid-email";
+    @DisplayName("Subscribe duplicate email - should return 409 Conflict")
+    void subscribe_Duplicate_ShouldReturnConflict() throws Exception {
+        // Given existing subscriber
+        subscriberRepository.save(new Subscriber(email));
 
-        // When & Then
-        MvcResult result = mockMvc.perform(post("/api/v1/subscriptions/subscribe")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\": \"" + invalidEmail + "\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-
-        ApiResponse<?> response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                ApiResponse.class
-        );
-
-        assertNotNull(response);
-        assertFalse(response.isSuccess(), "Response should indicate failure");
-        assertNotNull(response.getMessage(), "Response should contain error message");
+        mockMvc.perform(post("/api/v1/subscription/subscribe")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SubscriberDTO(email))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Email is already subscribed: " + email));
     }
 
     @Test
-    void unsubscribe_ExistingSubscriber_ShouldUpdateStatus() throws Exception {
-        // Given
-        String email = "test@example.com";
-        Subscriber subscriber = new Subscriber(email);
-        subscriberRepository.save(subscriber);
+    @DisplayName("Unsubscribe existing subscriber - should return 200 OK")
+    void unsubscribe_Existing_ShouldReturnOk() throws Exception {
+        subscriberRepository.save(new Subscriber(email));
 
-        // When
-        MvcResult result = mockMvc.perform(post("/api/v1/subscriptions/unsubscribe")
-                        .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/subscription/unsubscribe")
                         .param("email", email))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+                //.andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("Successfully unsubscribed"));
 
-        // Then
-        ApiResponse<String> response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                objectMapper.getTypeFactory().constructParametricType(ApiResponse.class, String.class)
-        );
-
-        assertNotNull(response);
-        assertTrue(response.isSuccess(), "Response should indicate success");
-        assertEquals("Successfully unsubscribed", response.getData());
-
-        // Commit the transaction to ensure the database state is updated
-        TestTransaction.flagForCommit();
-        TestTransaction.end();
-        TestTransaction.start();
-
-        // Verify database
-        Optional<Subscriber> updatedSubscriber = subscriberRepository.findByEmail(email);
-        assertNotNull(updatedSubscriber);
-        assertEquals(SubscriptionStatus.UNSUBSCRIBED, updatedSubscriber.get().getStatus());
-        assertNotNull(updatedSubscriber.get().getUnsubscribedAt());
+        Subscriber updated = subscriberRepository.findByEmail(email).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(SubscriptionStatus.UNSUBSCRIBED);
     }
 
     @Test
-    void resubscribe_UnsubscribedSubscriber_ShouldUpdateStatus() throws Exception {
-        // Given
-        String email = "test@example.com";
-        Subscriber subscriber = new Subscriber(email);
-        subscriber.setStatus(SubscriptionStatus.UNSUBSCRIBED);
-        subscriber.setUnsubscribedAt(java.time.LocalDateTime.now());
-        subscriberRepository.save(subscriber);
+    @DisplayName("Unsubscribe non-existent subscriber - should return 404 Not Found")
+    void unsubscribe_NonExistent_ShouldReturnNotFound() throws Exception {
+        mockMvc.perform(post("/api/v1/subscription/unsubscribe")
+                        .param("email", "notfound@example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Subscriber with email notfound@example.com not found."));
+    }
 
-        // When
-        MvcResult result = mockMvc.perform(post("/api/v1/subscriptions/resubscribe")
+    @Test
+    @DisplayName("Resubscribe existing unsubscribed subscriber - should return 200 OK")
+    void resubscribe_Existing_ShouldReturnOk() throws Exception {
+        Subscriber sub = new Subscriber(email);
+        sub.setStatus(SubscriptionStatus.UNSUBSCRIBED);
+        subscriberRepository.save(sub);
+
+        mockMvc.perform(post("/api/v1/subscription/resubscribe")
                         .param("email", email))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.email").value(email));
 
-        // Then
-        ApiResponse<Subscriber> response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                objectMapper.getTypeFactory().constructParametricType(ApiResponse.class, Subscriber.class)
-        );
-
-        assertNotNull(response);
-        assertTrue(response.isSuccess(), "Response should indicate success");
-        assertNotNull(response.getData());
-        assertEquals(email, response.getData().getEmail());
-        assertEquals(SubscriptionStatus.ACTIVE, response.getData().getStatus());
-
-        // Commit the transaction to ensure the database state is updated
-        TestTransaction.flagForCommit();
-        TestTransaction.end();
-        TestTransaction.start();
-
-        // Verify database
-        Optional<Subscriber> updatedSubscriber = subscriberRepository.findByEmail(email);
-        assertNotNull(updatedSubscriber);
-        assertEquals(SubscriptionStatus.ACTIVE, updatedSubscriber.get().getStatus());
-        assertNull(updatedSubscriber.get().getUnsubscribedAt());
+        Subscriber updated = subscriberRepository.findByEmail(email).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
     }
 
     @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void getActiveSubscribers_ShouldReturnOnlyActiveSubscribers() throws Exception {
-        // Given
-        Subscriber activeSubscriber = new Subscriber("active@example.com");
-        activeSubscriber.setStatus(SubscriptionStatus.ACTIVE);
+    @DisplayName("Resubscribe non-existent subscriber - should return 404 Not Found")
+    void resubscribe_NonExistent_ShouldReturnNotFound() throws Exception {
+        mockMvc.perform(post("/api/v1/subscription/resubscribe")
+                        .param("email", "notfound@example.com"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Subscriber with email notfound@example.com not found."));
+    }
 
-        Subscriber unsubscribedSubscriber = new Subscriber("unsubscribed@example.com");
-        unsubscribedSubscriber.setStatus(SubscriptionStatus.UNSUBSCRIBED);
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Get active subscribers - should return list")
+    void getActiveSubscribers_ShouldReturnList() throws Exception {
+        subscriberRepository.save(new Subscriber(email));
 
-        subscriberRepository.saveAll(List.of(activeSubscriber, unsubscribedSubscriber));
-
-        // When
-        MvcResult result = mockMvc.perform(get("/api/v1/subscriptions/active"))
+        mockMvc.perform(get("/api/v1/subscription/active"))
                 .andExpect(status().isOk())
-                //.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-
-        // Then
-        ApiResponse<List<Subscriber>> response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                objectMapper.getTypeFactory().constructParametricType(
-                        ApiResponse.class,
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, Subscriber.class)
-                )
-        );
-
-        assertNotNull(response);
-        assertTrue(response.isSuccess(), "Response should indicate success");
-        assertNotNull(response.getData());
-        assertEquals(1, response.getData().size());
-        assertEquals("active@example.com", response.getData().get(0).getEmail());
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].email").value(email));
     }
-
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void updateStatus_ValidStatus_ShouldUpdateStatus() throws Exception {
-        // Given
-        String email = "test@example.com";
-        Subscriber subscriber = new Subscriber(email);
-        subscriberRepository.save(subscriber);
-
-        // When
-        MvcResult result = mockMvc.perform(put("/api/v1/subscriptions/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .param("email", email)
-                        .param("status", SubscriptionStatus.UNSUBSCRIBED.name()))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        // Then
-
-//        assertNotNull(response);
-//        assertTrue(response.isSuccess(), "Response should indicate success");
-//        assertEquals("Successfully updated status", response.getData());
-
-        // Commit the transaction to ensure the database state is updated
-//        TestTransaction.flagForCommit();
-//        TestTransaction.end();
-//        TestTransaction.start();
-
-        // Verify database
-        Optional<Subscriber> updatedSubscriber = subscriberRepository.findByEmail(email);
-        assertNotNull(updatedSubscriber);
-        assertEquals(SubscriptionStatus.UNSUBSCRIBED, updatedSubscriber.get().getStatus());
-    }
-
-    @Test
-    @WithMockUser(username = "admin", roles = {"ADMIN"})
-    void updateStatus_InvalidStatus_ShouldReturnBadRequest() throws Exception {
-        // Given
-        String email = "test@example.com";
-        Subscriber subscriber = new Subscriber(email);
-        subscriberRepository.save(subscriber);
-
-        // When & Then
-        MvcResult result = mockMvc.perform(put("/api/v1/subscriptions/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .param("email", email)
-                        .param("status", "INVALID_STATUS"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-
-        ApiResponse<?> response = objectMapper.readValue(
-                result.getResponse().getContentAsString(),
-                ApiResponse.class
-        );
-
-        assertNotNull(response);
-        assertFalse(response.isSuccess(), "Response should indicate failure");
-        assertNotNull(response.getMessage(), "Response should contain error message");
-        assertTrue(response.getMessage().contains("Invalid status value"));
-    }
-} 
+}

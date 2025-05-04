@@ -1,13 +1,13 @@
 package com.codehacks.blog.post.controller;
 
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
+import com.codehacks.blog.auth.exception.AuthGlobalExceptionHandler;
 import com.codehacks.blog.post.dto.SubscriberDTO;
 import com.codehacks.blog.post.exception.DuplicateSubscriptionException;
 import com.codehacks.blog.post.exception.SubscriberNotFoundException;
 import com.codehacks.blog.post.model.Subscriber;
 import com.codehacks.blog.post.service.SubscriptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = SubscriptionController.class, excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = com.codehacks.blog.auth.exception.GlobalExceptionHandler.class)
+                classes = AuthGlobalExceptionHandler.class)
 })
 @Import(com.codehacks.blog.post.exception.GlobalExceptionHandler.class)
 @AutoConfigureMockMvc(addFilters = false)
