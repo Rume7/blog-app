@@ -552,7 +552,7 @@ class BlogServiceImplTest {
     @Test
     void shouldGetPostsByAuthor() {
         // Given
-        Author authorName = new Author("Test", "Author");
+        Author authorName = new Author("Test", "Author", "test@author.com");
         List<Post> authorPosts = Arrays.asList(
                 new Post("Post 1", "Content 1", authorName),
                 new Post("Post 2", "Content 2", authorName)
