@@ -1,5 +1,6 @@
 package com.codehacks.blog.post.service;
 
+import com.codehacks.blog.auth.exception.InvalidSearchQueryException;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
@@ -44,7 +46,7 @@ public class BlogServiceImpl implements BlogService {
     @Override
     public Post getPostById(Long id) {
         if (id == null || id < 1) {
-            throw new PostNotFoundException("Blog id " + id + " is invalid");
+            throw new PostNotFoundException("Post id: " + id + " is invalid");
         }
         return blogRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new PostNotFoundException("Post " + id + " was not found"));
@@ -57,10 +59,24 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public List<Post> getPostsByAuthor(Author authorName) {
-        if (authorName == null) {
+        validateAuthorName(authorName);
+
+        return blogRepository.findByAuthor(authorName);
+    }
+
+    private void validateAuthorName(Author author) {
+        if (author == null) {
             throw new MissingAuthorException("Author can't be null");
         }
-        return blogRepository.findByAuthor(authorName);
+        String firstName = author.getFirstName();
+        String lastName = author.getLastName();
+        String emailAddress = author.getEmail();
+
+        if (Stream.of(firstName, lastName, emailAddress)
+                .map(s -> Objects.requireNonNullElse(s, ""))
+                .anyMatch(String::isBlank)) {
+            throw new MissingAuthorException("Author name cannot be empty");
+        }
     }
 
     @Override
@@ -203,9 +219,9 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
-    public List<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch) {
-        if (query == null || query.trim().isEmpty()) {
-            throw new InvalidPostException("Search query cannot be empty");
+    public Set<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch) {
+        if (query == null || query.isBlank()) {
+            throw new InvalidSearchQueryException("Search query cannot be empty");
         }
 
         final String searchQuery = (!caseSensitive) ? query.trim().toLowerCase()
@@ -215,7 +231,7 @@ public class BlogServiceImpl implements BlogService {
         return posts.stream()
                 .filter(post -> matchesSearchCriteria(post, searchQuery, caseSensitive, exactMatch))
                 .map(postMapper::toSummary)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     private boolean matchesSearchCriteria(Post post, String searchQuery, boolean caseSensitive, boolean exactMatch) {

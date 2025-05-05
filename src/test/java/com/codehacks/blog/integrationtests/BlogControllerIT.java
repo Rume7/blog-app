@@ -98,7 +98,7 @@ class BlogControllerIT {
         blogRepository.save(post2);
 
         // When & Then
-        mockMvc.perform(get("/api/posts")
+        mockMvc.perform(get("/api/v1/posts")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -114,7 +114,7 @@ class BlogControllerIT {
         Post savedPost = blogRepository.save(post);
 
         // When & Then
-        mockMvc.perform(get("/api/posts/{id}", savedPost.getId())
+        mockMvc.perform(get("/api/v1/posts/{id}", savedPost.getId())
                         .header("Authorization", "Bearer " + token))
 //                        .param("id", String.valueOf(post.getId())))
                 .andExpect(status().isOk())
@@ -125,7 +125,7 @@ class BlogControllerIT {
 
     @NotNull
     private String getToken() throws Exception {
-        return mockMvc.perform(post("/api/auth/login")
+        return mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"testUser\",\"password\":\"password\"}"))
                 .andExpect(status().isOk())
@@ -139,7 +139,7 @@ class BlogControllerIT {
         Post post = new Post("New Title", "New Content", testAuthor);
 
         // When & Then
-        mockMvc.perform(post("/api/posts")
+        mockMvc.perform(post("/api/v1/posts")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(post)))
@@ -177,7 +177,7 @@ class BlogControllerIT {
         Post savedPost = blogRepository.save(post);
 
         // When & Then
-        mockMvc.perform(delete("/api/posts/{id}", savedPost.getId())
+        mockMvc.perform(delete("/api/v1/posts/{id}", savedPost.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
 

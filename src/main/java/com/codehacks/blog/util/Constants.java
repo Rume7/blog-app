@@ -1,6 +1,7 @@
 package com.codehacks.blog.util;
 
 public final class Constants {
+
     private Constants() {
     }
 
@@ -9,6 +10,7 @@ public final class Constants {
     public static final String AUTH_PATH = API_V1 + "/auth";
     public static final String COMMENT_PATH = API_V1 + "/comment";
     public static final String USERS_PATH = API_V1 + "/users";
+    public static final String SUBSCRIPTION_PATH = API_V1 + "/subscription";
     public static final int MIN_TITLE_LENGTH = 10;
     public static final int MAX_TITLE_LENGTH = 150;
     public static final int MAX_CONTENT_LENGTH = 100000;

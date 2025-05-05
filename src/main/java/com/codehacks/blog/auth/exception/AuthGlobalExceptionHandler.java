@@ -5,6 +5,7 @@ import com.codehacks.blog.post.exception.PostNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,17 +13,19 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@ControllerAdvice
+@RestControllerAdvice("com.codehacks.blog.auth")
 @Slf4j
-public class GlobalExceptionHandler {
+public class AuthGlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuthGlobalExceptionHandler.class);
 
     @ExceptionHandler(PostNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -52,6 +55,23 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toList());
 
         logger.error("Validation errors: {}", errors);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(errors.toString()));
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiResponse<Object>> handleParameterValidationException(HandlerMethodValidationException ex) {
+        List<String> errors = ex.getAllValidationResults()
+                .stream()
+                .map(result -> result.getResolvableErrors().stream()
+                        .map(MessageSourceResolvable::getDefaultMessage)
+                        .collect(Collectors.joining(", ")))
+                .collect(Collectors.toList());
+
+        logger.error("Parameter validation errors: {}", errors);
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)

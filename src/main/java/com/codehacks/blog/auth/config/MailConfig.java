@@ -17,10 +17,10 @@ public class MailConfig {
     @Value("${spring.mail.port:587}")
     private int mailPort;
 
-    @Value("${spring.mail.username:example@gmail.com}")
+    @Value("${spring.mail.username:test@example.com}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password:testpassword}")
     private String mailPassword;
 
     @Bean
@@ -29,10 +29,6 @@ public class MailConfig {
         mailSender.setHost(getMailHost());
         mailSender.setPort(getMailPort());
         mailSender.setUsername(getMailUsername());
-
-        if (mailPassword == null || mailPassword.isEmpty()) {
-            throw new IllegalStateException("Mail password is not set! Please configure 'spring.mail.password'.");
-        }
         mailSender.setPassword(getMailPassword());
 
         Properties props = mailSender.getJavaMailProperties();

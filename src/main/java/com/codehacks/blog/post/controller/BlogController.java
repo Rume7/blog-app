@@ -116,26 +116,20 @@ public class BlogController {
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PostSummaryDTO>> searchPosts(
+    public ResponseEntity<ApiResponse<Set<PostSummaryDTO>>> searchPosts(
             @RequestParam String query,
             @RequestParam(required = false, defaultValue = "true") boolean caseSensitive,
             @RequestParam(required = false, defaultValue = "true") boolean exactMatch) {
-        if (query == null || query.trim().isEmpty()) {
-            throw new InvalidPostException("Search query cannot be empty");
-        }
-        List<PostSummaryDTO> results = blogService.searchPosts(query.trim(), caseSensitive, exactMatch);
-        return ResponseEntity.ok(results);
+
+        Set<PostSummaryDTO> results = blogService.searchPosts(query, caseSensitive, exactMatch);
+        return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     @GetMapping(value = "/search/author", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Post>> getPostsByAuthor(@RequestParam String firstName, String lastName, String email) {
-        if (firstName == null || firstName.trim().isEmpty()
-                || lastName == null || lastName.trim().isEmpty()
-                || email == null || email.trim().isEmpty()) {
-            throw new InvalidPostException("Author name cannot be empty");
-        }
         Author author = new Author(firstName, lastName, email);
         List<Post> posts = blogService.getPostsByAuthor(author);
+
         return ResponseEntity.ok(posts);
     }
 }
