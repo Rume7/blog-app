@@ -1,6 +1,7 @@
 package com.codehacks.blog.service;
 
 import com.codehacks.blog.auth.exception.InvalidPostException;
+import com.codehacks.blog.auth.exception.InvalidSearchQueryException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.MissingAuthorException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
@@ -637,7 +638,7 @@ class BlogServiceImplTest {
         });
 
         // When
-        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, true);
+        Set<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, true);
 
         // Then
         assertAll(
@@ -666,7 +667,7 @@ class BlogServiceImplTest {
         });
 
         // When
-        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, false);
+        Set<PostSummaryDTO> results = blogService.searchPosts(searchQuery, true, false);
 
         // Then
         assertAll(
@@ -695,7 +696,7 @@ class BlogServiceImplTest {
         });
 
         // When
-        List<PostSummaryDTO> results = blogService.searchPosts(searchQuery, false, false);
+        Set<PostSummaryDTO> results = blogService.searchPosts(searchQuery, false, false);
 
         // Then
         assertAll(
@@ -714,7 +715,7 @@ class BlogServiceImplTest {
         String emptyQuery = "";
 
         // When & Then
-        InvalidPostException exception = assertThrows(InvalidPostException.class,
+        InvalidSearchQueryException exception = assertThrows(InvalidSearchQueryException.class,
                 () -> blogService.searchPosts(emptyQuery, true, true));
 
         assertEquals("Search query cannot be empty", exception.getMessage());
@@ -724,7 +725,7 @@ class BlogServiceImplTest {
     @Test
     void shouldThrowExceptionWhenSearchingWithWhitespaceOnlyQuery() {
         // When & Then
-        InvalidPostException exception = assertThrows(InvalidPostException.class,
+        InvalidSearchQueryException exception = assertThrows(InvalidSearchQueryException.class,
                 () -> blogService.searchPosts("   ", true, true));
 
         assertEquals("Search query cannot be empty", exception.getMessage());
@@ -760,7 +761,7 @@ class BlogServiceImplTest {
     @Test
     void shouldThrowExceptionWhenSearchingWithNullQuery() {
         // When & Then
-        InvalidPostException exception = assertThrows(InvalidPostException.class,
+        InvalidSearchQueryException exception = assertThrows(InvalidSearchQueryException.class,
                 () -> blogService.searchPosts(null, true, true));
 
         assertEquals("Search query cannot be empty", exception.getMessage());

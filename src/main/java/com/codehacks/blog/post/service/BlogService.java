@@ -30,5 +30,5 @@ public interface BlogService {
 
     List<PostSummaryDTO> getRecentPosts(Pageable pageable);
 
-    List<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch);
+    Set<PostSummaryDTO> searchPosts(String query, boolean caseSensitive, boolean exactMatch);
 }
