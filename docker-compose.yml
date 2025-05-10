@@ -44,6 +44,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+      SPRING_REDIS_HOST: blog-redis
     env_file:
       - .env
     networks:

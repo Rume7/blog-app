@@ -3,7 +3,6 @@ package com.codehacks.blog.post.controller;
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.AuthGlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
-import com.codehacks.blog.auth.exception.InvalidSearchQueryException;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
@@ -38,8 +37,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -578,21 +575,23 @@ class BlogControllerTest {
 //    void shouldHandleInvalidSearchParameter() throws Exception {
 //        // Given
 //        String invalidSearchTerm = " "; // Empty search term
+//        boolean caseSensitive = false;
+//        boolean exactMatch = true;
 //
-//        // When
-//        when(blogService.searchPosts(anyString(), anyBoolean(), anyBoolean()))
-//                .thenThrow(new InvalidSearchQueryException("Search query cannot be empty"));
+//        // Mock the service to throw exception when the invalid query is used
+//        doThrow(new InvalidSearchQueryException("Search query cannot be empty"))
+//                .when(blogService).searchPosts(eq(invalidSearchTerm), eq(caseSensitive), eq(exactMatch));
 //
-//        // Then
+//        // When & Then
 //        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
 //                        .param("query", invalidSearchTerm)
-//                        .param("caseSensitive", "false")
-//                        .param("exactMatch", "true")
+//                        .param("caseSensitive", String.valueOf(caseSensitive))
+//                        .param("exactMatch", String.valueOf(exactMatch))
 //                        .contentType(MediaType.APPLICATION_JSON))
 //                .andExpect(status().isBadRequest())
 //                .andExpect(jsonPath("$.message").value("Search query cannot be empty"));
 //
-//        verify(blogService, times(0)).searchPosts(eq(invalidSearchTerm), eq(false), eq(true));
+//        verify(blogService, times(1)).searchPosts(eq(invalidSearchTerm), eq(caseSensitive), eq(exactMatch));
 //    }
 
     @Test

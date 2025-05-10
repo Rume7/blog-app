@@ -62,8 +62,7 @@ public class BlogController {
     }
 
 
-    @Operation(summary = "Create a new blog post",
-            description = "Only accessible by ADMIN or AUTHOR",
+    @Operation(summary = "Create a new blog post", description = "Only accessible by ADMIN or AUTHOR",
             security = @SecurityRequirement(name = "bearerAuth"))
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping(value = "/create", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -118,8 +117,8 @@ public class BlogController {
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Set<PostSummaryDTO>>> searchPosts(
             @RequestParam String query,
-            @RequestParam(required = false, defaultValue = "true") boolean caseSensitive,
-            @RequestParam(required = false, defaultValue = "true") boolean exactMatch) {
+            @RequestParam(defaultValue = "false") boolean caseSensitive,
+            @RequestParam(defaultValue = "false") boolean exactMatch) {
 
         Set<PostSummaryDTO> results = blogService.searchPosts(query, caseSensitive, exactMatch);
         return ResponseEntity.ok(ApiResponse.success(results));
