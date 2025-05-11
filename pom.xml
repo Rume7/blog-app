@@ -13,7 +13,7 @@
 
     <groupId>com.codehacks</groupId>
     <artifactId>blog-app</artifactId>
-    <version>1.3.6</version>
+    <version>1.4.0</version>
     <name>blog-app</name>
     <description>Blog project</description>
 
