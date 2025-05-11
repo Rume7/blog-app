@@ -1,4 +1,4 @@
-# 📝 Blog App Backend (Spring Boot + Postgres + Redis)
+# 📝 App Backend (Spring Boot + Postgres + Redis)
 
 Welcome to the **Blog App Backend API** — a Spring Boot-based REST API built for managing blog posts, user
 subscriptions, and more.  
@@ -58,20 +58,28 @@ cd blog-app
 ### 2. Configure Environment Variables
 
 ```
-
 Edit the .env file at the root directory. Example:
-DB_USERNAME=bloguser
-DB_PASSWORD=blogpass
-DB_NAME=blogdb
-JWT_SECRET=your_secret_key
+# Database Configuration
+DB_USERNAME=blog_user
+DB_PASSWORD=blog_pass
+DB_NAME=blog_db
 
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRATION_MS=60000  # 1 minute in milliseconds
+
+# Redis Configuration (Docker binds this automatically)
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Spring App Port (matches docker-compose.yml)
+SERVER_PORT=8080
 ```
 
 ### 3. Run the App using Docker Compose
 
 ```
 docker-compose up --build
-
 ```
 
 ## 🌐 API Documentation

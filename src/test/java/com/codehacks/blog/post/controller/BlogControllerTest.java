@@ -6,6 +6,7 @@ import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.subscription.exception.SubscriptionGlobalExceptionHandler;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
@@ -53,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = BlogController.class, excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = com.codehacks.blog.post.exception.GlobalExceptionHandler.class)
+                classes = SubscriptionGlobalExceptionHandler.class)
 })
 @AutoConfigureMockMvc(addFilters = false)
 @Import(AuthGlobalExceptionHandler.class)
