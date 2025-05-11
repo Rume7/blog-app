@@ -19,7 +19,7 @@ public class SubscriptionGlobalExceptionHandler {
 
     @ExceptionHandler(SubscriberNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleSubscriberNotFound(SubscriberNotFoundException ex) {
-        logger.warn("Subscriber not found: {}", ex.getMessage());
+        logger.error("Subscriber not found: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -27,14 +27,14 @@ public class SubscriptionGlobalExceptionHandler {
     // 409 - Duplicate subscription
     @ExceptionHandler(DuplicateSubscriptionException.class)
     public ResponseEntity<ApiResponse<String>> handleDuplicateSubscription(DuplicateSubscriptionException ex) {
-        logger.warn("Duplicate subscription attempt: {}", ex.getMessage());
+        logger.error("Duplicate subscription attempt: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<String>> handleConstraintViolation(ConstraintViolationException ex) {
-        logger.warn("Constraint violation: {}", ex.getMessage());
+        logger.error("Constraint violation: {}", ex.getMessage());
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error("Invalid input: " + ex.getMessage()));
     }

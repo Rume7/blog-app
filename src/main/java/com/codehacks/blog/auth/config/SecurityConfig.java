@@ -89,8 +89,8 @@ public class SecurityConfig {
                     auth
                             .requestMatchers(WHITELIST).permitAll()
                             .requestMatchers(HttpMethod.POST, SUBSCRIPTION_PUBLIC_ENDPOINTS).permitAll()
-                            .requestMatchers(HttpMethod.GET, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[0]).authenticated()
-                            .requestMatchers(HttpMethod.PUT, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[1]).authenticated()
+                            .requestMatchers(HttpMethod.GET, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[0]).hasRole("ADMIN")
+                            .requestMatchers(HttpMethod.PUT, SUBSCRIPTION_AUTHENTICATED_ENDPOINTS[1]).hasRole("ADMIN")
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/register").permitAll()
                             .requestMatchers(HttpMethod.POST, Constants.AUTH_PATH + "/login").permitAll()
                             .requestMatchers("/error").permitAll()
@@ -131,7 +131,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept",
+                "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

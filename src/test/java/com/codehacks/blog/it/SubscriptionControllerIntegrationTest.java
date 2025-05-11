@@ -1,10 +1,10 @@
 package com.codehacks.blog.it;
 
-import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.subscription.dto.SubscriberDTO;
 import com.codehacks.blog.subscription.model.Subscriber;
 import com.codehacks.blog.subscription.model.SubscriptionStatus;
 import com.codehacks.blog.subscription.repository.SubscriberRepository;
+import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bucket;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -24,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.List;
 
@@ -41,7 +40,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Transactional
-@DirtiesContext
 class SubscriptionControllerIntegrationTest {
 
     @Container
@@ -64,9 +62,6 @@ class SubscriptionControllerIntegrationTest {
     @MockBean
     private Bucket rateLimiterBucket;
 
-    @MockBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
     @Autowired
     private SubscriberRepository subscriberRepository;
 
@@ -77,13 +72,13 @@ class SubscriptionControllerIntegrationTest {
     @BeforeEach
     void setup() {
         given(rateLimiterBucket.tryConsume(anyLong())).willReturn(true);
-        //subscriberRepository.deleteAll();
+        subscriberRepository.deleteAll();
     }
 
     @Test
     @DisplayName("Subscribe new email - should return 201 Created")
     void subscribe_New_ShouldReturnCreated() throws Exception {
-        mockMvc.perform(post("/api/v1/subscriptions/subscribe")
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/subscribe")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new SubscriberDTO(email))))
                 .andExpect(status().isCreated())
@@ -100,7 +95,7 @@ class SubscriptionControllerIntegrationTest {
         // Given existing subscriber
         subscriberRepository.save(new Subscriber(email));
 
-        mockMvc.perform(post("/api/v1/subscriptions/subscribe")
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/subscribe")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new SubscriberDTO(email))))
                 .andExpect(status().isConflict())
@@ -113,7 +108,7 @@ class SubscriptionControllerIntegrationTest {
     void unsubscribe_Existing_ShouldReturnOk() throws Exception {
         subscriberRepository.save(new Subscriber(email));
 
-        mockMvc.perform(post("/api/v1/subscriptions/unsubscribe")
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/unsubscribe")
                         .param("email", email))
                 .andExpect(status().isOk())
                 //.andExpect(jsonPath("$.success").value(true))
@@ -126,7 +121,7 @@ class SubscriptionControllerIntegrationTest {
     @Test
     @DisplayName("Unsubscribe non-existent subscriber - should return 404 Not Found")
     void unsubscribe_NonExistent_ShouldReturnNotFound() throws Exception {
-        mockMvc.perform(post("/api/v1/subscriptions/unsubscribe")
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/unsubscribe")
                         .param("email", "notfound@example.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
@@ -140,7 +135,7 @@ class SubscriptionControllerIntegrationTest {
         sub.setStatus(SubscriptionStatus.UNSUBSCRIBED);
         subscriberRepository.save(sub);
 
-        mockMvc.perform(post("/api/v1/subscriptions/resubscribe")
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/resubscribe")
                         .param("email", email))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -153,7 +148,10 @@ class SubscriptionControllerIntegrationTest {
     @Test
     @DisplayName("Resubscribe non-existent subscriber - should return 404 Not Found")
     void resubscribe_NonExistent_ShouldReturnNotFound() throws Exception {
-        mockMvc.perform(post("/api/v1/subscriptions/resubscribe")
+//        String email = "notfound@example.com";
+//        subscriberRepository.save(new Subscriber(email));
+
+        mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/resubscribe")
                         .param("email", "notfound@example.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
@@ -166,9 +164,22 @@ class SubscriptionControllerIntegrationTest {
     void getActiveSubscribers_ShouldReturnList() throws Exception {
         subscriberRepository.save(new Subscriber(email));
 
-        mockMvc.perform(get("/api/v1/subscriptions/active"))
+        mockMvc.perform(get(Constants.SUBSCRIPTION_PATH + "/active"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].email").value(email));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Get subscriber status - should return status for admin")
+    void getSubscriberStatus_ShouldReturnStatusForAdmin() throws Exception {
+        subscriberRepository.save(new Subscriber(email));
+
+        mockMvc.perform(get(Constants.SUBSCRIPTION_PATH + "/status")
+                        .param("email", email))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.email").value(email));
     }
 }
