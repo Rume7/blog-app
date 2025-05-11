@@ -3,10 +3,10 @@ package com.codehacks.blog.post.controller;
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.AuthGlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
-import com.codehacks.blog.auth.exception.InvalidSearchQueryException;
 import com.codehacks.blog.post.dto.BlogPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
+import com.codehacks.blog.subscription.exception.SubscriptionGlobalExceptionHandler;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.service.BlogService;
@@ -38,8 +38,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -56,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = BlogController.class, excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = com.codehacks.blog.post.exception.GlobalExceptionHandler.class)
+                classes = SubscriptionGlobalExceptionHandler.class)
 })
 @AutoConfigureMockMvc(addFilters = false)
 @Import(AuthGlobalExceptionHandler.class)
@@ -578,21 +576,23 @@ class BlogControllerTest {
 //    void shouldHandleInvalidSearchParameter() throws Exception {
 //        // Given
 //        String invalidSearchTerm = " "; // Empty search term
+//        boolean caseSensitive = false;
+//        boolean exactMatch = true;
 //
-//        // When
-//        when(blogService.searchPosts(anyString(), anyBoolean(), anyBoolean()))
-//                .thenThrow(new InvalidSearchQueryException("Search query cannot be empty"));
+//        // Mock the service to throw exception when the invalid query is used
+//        doThrow(new InvalidSearchQueryException("Search query cannot be empty"))
+//                .when(blogService).searchPosts(eq(invalidSearchTerm), eq(caseSensitive), eq(exactMatch));
 //
-//        // Then
+//        // When & Then
 //        mockMvc.perform(get(Constants.BLOG_PATH + "/search")
 //                        .param("query", invalidSearchTerm)
-//                        .param("caseSensitive", "false")
-//                        .param("exactMatch", "true")
+//                        .param("caseSensitive", String.valueOf(caseSensitive))
+//                        .param("exactMatch", String.valueOf(exactMatch))
 //                        .contentType(MediaType.APPLICATION_JSON))
 //                .andExpect(status().isBadRequest())
 //                .andExpect(jsonPath("$.message").value("Search query cannot be empty"));
 //
-//        verify(blogService, times(0)).searchPosts(eq(invalidSearchTerm), eq(false), eq(true));
+//        verify(blogService, times(1)).searchPosts(eq(invalidSearchTerm), eq(caseSensitive), eq(exactMatch));
 //    }
 
     @Test

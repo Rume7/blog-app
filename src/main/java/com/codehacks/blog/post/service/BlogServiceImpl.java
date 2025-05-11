@@ -15,6 +15,7 @@ import com.codehacks.blog.util.Constants;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +45,7 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Cacheable(value = "posts", key = "#postId")
     public Post getPostById(Long id) {
         if (id == null || id < 1) {
             throw new PostNotFoundException("Post id: " + id + " is invalid");
@@ -164,6 +166,7 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Cacheable
     public List<BlogPreviewDTO> getBlogPreviews() {
         List<Post> blogs = blogRepository.findAll();
         return blogs.stream()
@@ -207,6 +210,7 @@ public class BlogServiceImpl implements BlogService {
         return String.join(" ", Arrays.copyOfRange(words, 0, Math.min(n, words.length)));
     }
 
+    @Cacheable
     public List<PostSummaryDTO> getRecentPosts(Pageable pageable) {
         if (pageable == null) {
             throw new PostNotFoundException("There should be a number of posts.");
