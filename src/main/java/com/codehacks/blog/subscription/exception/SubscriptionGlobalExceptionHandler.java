@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
-@RestControllerAdvice("com.codehacks.blog.post")
+@RestControllerAdvice("com.codehacks.blog.subscription")
 @Slf4j
 public class SubscriptionGlobalExceptionHandler {
 

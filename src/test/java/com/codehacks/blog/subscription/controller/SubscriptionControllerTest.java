@@ -8,6 +8,7 @@ import com.codehacks.blog.subscription.exception.SubscriberNotFoundException;
 import com.codehacks.blog.subscription.exception.SubscriptionGlobalExceptionHandler;
 import com.codehacks.blog.subscription.model.Subscriber;
 import com.codehacks.blog.subscription.service.SubscriptionService;
+import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ class SubscriptionControllerTest {
 
     private final String email = "user@example.com";
 
-    private final String BASE_URL = "/api/v1/subscription";
+    private final String BASE_URL = Constants.SUBSCRIPTION_PATH;
 
     @Test
     void subscribe_NewEmail_ShouldReturnCreated() throws Exception {
@@ -139,7 +140,7 @@ class SubscriptionControllerTest {
                         .param("email", email))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.success").value("false"))
+                .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Subscriber with email " + email + " not found."));
 
         verify(subscriptionService).resubscribe(email);
