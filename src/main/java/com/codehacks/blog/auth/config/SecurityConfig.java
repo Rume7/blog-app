@@ -66,7 +66,7 @@ public class SecurityConfig {
 
     private static final String[] SUBSCRIPTION_AUTHENTICATED_ENDPOINTS = {
             Constants.SUBSCRIPTION_PATH + "/active",
-            Constants.SUBSCRIPTION_PATH + "/status"
+            Constants.SUBSCRIPTION_PATH + "/grouped-by-status",
     };
 
     @Bean

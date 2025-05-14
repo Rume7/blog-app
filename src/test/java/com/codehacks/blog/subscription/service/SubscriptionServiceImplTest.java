@@ -14,12 +14,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionServiceImplTest {
@@ -182,4 +191,64 @@ class SubscriptionServiceImplTest {
         assertEquals(1, result.size());
         assertEquals(SubscriptionStatus.ACTIVE, result.get(0).getStatus());
     }
-} 
+
+    @Test
+    void getSubscriberByStatus_ShouldGroupByStatus() {
+        // Given
+        String email1 = "joined@blogtest.com";
+        String email2 = "unjoined@blogtest.com";
+
+        Subscriber active = new Subscriber(email1);
+        active.setStatus(SubscriptionStatus.ACTIVE);
+
+        Subscriber inactive = new Subscriber(email2);
+        inactive.setStatus(SubscriptionStatus.UNSUBSCRIBED);
+
+        List<Subscriber> subscribers = List.of(active, inactive);
+
+        when(subscriberRepository.findAll()).thenReturn(subscribers);
+
+        // When
+        Map<SubscriptionStatus, List<Subscriber>> result = subscriptionService.getSubscribersByStatus();
+
+        // Then
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey(SubscriptionStatus.ACTIVE));
+        assertTrue(result.containsKey(SubscriptionStatus.UNSUBSCRIBED));
+        assertEquals(1, result.get(SubscriptionStatus.ACTIVE).size());
+        assertEquals(1, result.get(SubscriptionStatus.UNSUBSCRIBED).size());
+        assertEquals(email1, result.get(SubscriptionStatus.ACTIVE).get(0).getEmail());
+    }
+
+    @Test
+    void getSubscriberByStatus_EmptyList_ShouldReturnEmptyMap() {
+        // Given
+        when(subscriberRepository.findAll()).thenReturn(Collections.emptyList());
+
+        // When
+        Map<SubscriptionStatus, List<Subscriber>> result = subscriptionService.getSubscribersByStatus();
+
+        // Then
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getSubscriberByStatus_AllSameStatus_ShouldReturnSingleGroup() {
+        // Given
+        Subscriber s1 = new Subscriber("a@example.com");
+        s1.setStatus(SubscriptionStatus.ACTIVE);
+
+        Subscriber s2 = new Subscriber("b@example.com");
+        s2.setStatus(SubscriptionStatus.ACTIVE);
+
+        when(subscriberRepository.findAll()).thenReturn(List.of(s1, s2));
+
+        // When
+        Map<SubscriptionStatus, List<Subscriber>> result = subscriptionService.getSubscribersByStatus();
+
+        // Then
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey(SubscriptionStatus.ACTIVE));
+        assertEquals(2, result.get(SubscriptionStatus.ACTIVE).size());
+    }
+}

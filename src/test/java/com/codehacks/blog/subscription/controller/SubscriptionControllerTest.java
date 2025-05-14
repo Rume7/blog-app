@@ -7,6 +7,7 @@ import com.codehacks.blog.subscription.exception.DuplicateSubscriptionException;
 import com.codehacks.blog.subscription.exception.SubscriberNotFoundException;
 import com.codehacks.blog.subscription.exception.SubscriptionGlobalExceptionHandler;
 import com.codehacks.blog.subscription.model.Subscriber;
+import com.codehacks.blog.subscription.model.SubscriptionStatus;
 import com.codehacks.blog.subscription.service.SubscriptionService;
 import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,9 +21,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -164,5 +168,29 @@ class SubscriptionControllerTest {
         mockMvc.perform(post(BASE_URL + "/unsubscribe")
                         .param("email", "invalid-email"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    @Test
+    void getSubscribersByStatus_AsAdmin_ShouldReturnGroupedList() throws Exception {
+        // Given
+        Subscriber activeSub = new Subscriber("active@example.com");
+        Subscriber inactiveSub = new Subscriber("inactive@example.com");
+
+        Map<SubscriptionStatus, List<Subscriber>> mockResponse = new HashMap<>();
+        mockResponse.put(SubscriptionStatus.ACTIVE, List.of(activeSub));
+        mockResponse.put(SubscriptionStatus.UNSUBSCRIBED, List.of(inactiveSub));
+
+        when(subscriptionService.getSubscriberByStatus()).thenReturn(mockResponse);
+
+        // When & Then
+        mockMvc.perform(get(BASE_URL + "/grouped-by-status")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value("true"))
+                .andExpect(jsonPath("$.data.ACTIVE[0].email").value("active@example.com"))
+                .andExpect(jsonPath("$.data.UNSUBSCRIBED[0].email").value("inactive@example.com"));
+
+        verify(subscriptionService).getSubscriberByStatus();
     }
 }

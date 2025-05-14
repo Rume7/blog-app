@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -27,6 +28,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @ActiveProfiles("test")
 @Testcontainers
@@ -148,9 +151,6 @@ class SubscriptionControllerIntegrationTest {
     @Test
     @DisplayName("Resubscribe non-existent subscriber - should return 404 Not Found")
     void resubscribe_NonExistent_ShouldReturnNotFound() throws Exception {
-//        String email = "notfound@example.com";
-//        subscriberRepository.save(new Subscriber(email));
-
         mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/resubscribe")
                         .param("email", "notfound@example.com"))
                 .andExpect(status().isNotFound())
@@ -170,17 +170,36 @@ class SubscriptionControllerIntegrationTest {
                 .andExpect(jsonPath("$.data[0].email").value(email));
     }
 
-    // No endpoint yet
-//    @Test
-//    @WithMockUser(roles = "ADMIN")
-//    @DisplayName("Get subscriber status - should return status for admin")
-//    void getSubscriberStatus_ShouldReturnStatusForAdmin() throws Exception {
-//        subscriberRepository.save(new Subscriber(email));
-//
-//        mockMvc.perform(get(Constants.SUBSCRIPTION_PATH + "/status")
-//                        .param("email", email))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.success").value(true))
-//                .andExpect(jsonPath("$.data.email").value(email));
-//    }
+    private void initializeSubscribers() {
+        Subscriber sub1 = new Subscriber("active1@example.com");
+        sub1.setStatus(SubscriptionStatus.ACTIVE);
+        Subscriber sub2 = new Subscriber("inactive1@example.com");
+        sub2.setStatus(SubscriptionStatus.UNSUBSCRIBED);
+
+        Subscriber sub3 = new Subscriber("active2@example.com");
+        sub3.setStatus(SubscriptionStatus.ACTIVE);
+        Subscriber sub4 = new Subscriber("pending1@example.com");
+        sub4.setStatus(SubscriptionStatus.BANNED);
+
+        subscriberRepository.saveAll(List.of(sub1, sub2, sub3, sub4));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Get subscribers by their status- should return a Map")
+    void shouldReturnGroupedSubscribers_ForAdmin() throws Exception {
+        initializeSubscribers();
+
+        mockMvc.perform(get(Constants.SUBSCRIPTION_PATH + "/grouped-by-status")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.ACTIVE", hasSize(2)))
+                .andExpect(jsonPath("$.data.UNSUBSCRIBED", hasSize(1)))
+                .andExpect(jsonPath("$.data.BANNED", hasSize(1)))
+                .andExpect(jsonPath("$.data.ACTIVE[0].email").value("active1@example.com"))
+                .andExpect(jsonPath("$.data.ACTIVE[1].email").value("active2@example.com"))
+                .andExpect(jsonPath("$.data.UNSUBSCRIBED[0].email").value("inactive1@example.com"))
+                .andExpect(jsonPath("$.data.BANNED[0].email").value("pending1@example.com"));
+    }
 }
