@@ -180,7 +180,7 @@ public class SubscriptionController {
     )
     @GetMapping(value = "/grouped-by-status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<SubscriptionStatus, List<Subscriber>>>> getSubscribersByStatus() {
-        Map<SubscriptionStatus, List<Subscriber>> groupedSubscribers = subscriptionService.getSubscriberByStatus();
+        Map<SubscriptionStatus, List<Subscriber>> groupedSubscribers = subscriptionService.getSubscribersByStatus();
 
         return ResponseEntity.ok(ApiResponse.success(groupedSubscribers));
     }

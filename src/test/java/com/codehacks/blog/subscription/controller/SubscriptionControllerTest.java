@@ -181,7 +181,7 @@ class SubscriptionControllerTest {
         mockResponse.put(SubscriptionStatus.ACTIVE, List.of(activeSub));
         mockResponse.put(SubscriptionStatus.UNSUBSCRIBED, List.of(inactiveSub));
 
-        when(subscriptionService.getSubscriberByStatus()).thenReturn(mockResponse);
+        when(subscriptionService.getSubscribersByStatus()).thenReturn(mockResponse);
 
         // When & Then
         mockMvc.perform(get(BASE_URL + "/grouped-by-status")
@@ -191,6 +191,6 @@ class SubscriptionControllerTest {
                 .andExpect(jsonPath("$.data.ACTIVE[0].email").value("active@example.com"))
                 .andExpect(jsonPath("$.data.UNSUBSCRIBED[0].email").value("inactive@example.com"));
 
-        verify(subscriptionService).getSubscriberByStatus();
+        verify(subscriptionService).getSubscribersByStatus();
     }
 }
