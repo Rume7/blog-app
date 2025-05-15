@@ -1,12 +1,12 @@
 package com.codehacks.blog.post.controller;
 
 import com.codehacks.blog.auth.dto.ApiResponse;
-import com.codehacks.blog.post.dto.BlogPreviewDTO;
+import com.codehacks.blog.post.dto.PostPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.post.service.BlogService;
+import com.codehacks.blog.post.service.PostService;
 import com.codehacks.blog.util.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,25 +36,25 @@ import java.util.Set;
 @Slf4j
 @RestController
 @RequestMapping(Constants.BLOG_PATH)
-public class BlogController {
+public class PostController {
 
-    private final BlogService blogService;
+    private final PostService postService;
     private final int defaultRecentLimit;
 
-    public BlogController(BlogService blogService, @Value("${blog.recent.limit}") int defaultRecentLimit) {
-        this.blogService = blogService;
+    public PostController(PostService postService, @Value("${blog.recent.limit}") int defaultRecentLimit) {
+        this.postService = postService;
         this.defaultRecentLimit = defaultRecentLimit;
     }
 
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Set<Post>> getAllPosts() {
-        Set<Post> allPosts = blogService.getAllPosts();
+        Set<Post> allPosts = postService.getAllPosts();
         return ResponseEntity.ok(allPosts);
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Post> getPostById(@Valid @Positive @PathVariable Long id) {
-        Post post = blogService.getPostById(id);
+        Post post = postService.getPostById(id);
         if (post != null) {
             return new ResponseEntity<>(post, HttpStatus.OK);
         }
@@ -69,7 +69,7 @@ public class BlogController {
     public ResponseEntity<ApiResponse<Post>> createPost(@Valid @RequestBody Post post) throws InvalidPostException {
         log.info("Received Post: {}", post);
         try {
-            Post createdPost = blogService.createPost(post);
+            Post createdPost = postService.createPost(post);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.created(createdPost));
         } catch (InvalidPostException ex) {
@@ -80,7 +80,7 @@ public class BlogController {
     @PutMapping(value = "/update/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Post>> updatePost(@PathVariable @Positive Long id, @Valid @RequestBody Post post) {
         log.info("Updated Post: {}", post);
-        Post updatedPost = blogService.updatePost(post, id);
+        Post updatedPost = postService.updatePost(post, id);
         if (updatedPost == null) {
             return ResponseEntity.ok(ApiResponse.error(Constants.POST_NOT_FOUND + id));
         }
@@ -89,7 +89,7 @@ public class BlogController {
 
     @DeleteMapping(value = "/delete/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> deletePost(@PathVariable Long id) throws InvalidPostException {
-        boolean deletePost = blogService.deletePost(id);
+        boolean deletePost = postService.deletePost(id);
         if (deletePost) {
             return ResponseEntity.noContent().build();
         }
@@ -97,8 +97,8 @@ public class BlogController {
     }
 
     @GetMapping(value = "/previews", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<BlogPreviewDTO>> getBlogPreviews() {
-        List<BlogPreviewDTO> previews = blogService.getBlogPreviews();
+    public ResponseEntity<List<PostPreviewDTO>> getBlogPreviews() {
+        List<PostPreviewDTO> previews = postService.getBlogPreviews();
         return ResponseEntity.ok(previews);
     }
 
@@ -110,7 +110,7 @@ public class BlogController {
         }
         int safeLimit = (limit != null) ? Math.min(limit, 10) : defaultRecentLimit;
         Pageable pageable = PageRequest.of(0, safeLimit);
-        List<PostSummaryDTO> posts = blogService.getRecentPosts(pageable);
+        List<PostSummaryDTO> posts = postService.getRecentPosts(pageable);
         return ResponseEntity.ok(posts);
     }
 
@@ -120,14 +120,14 @@ public class BlogController {
             @RequestParam(defaultValue = "false") boolean caseSensitive,
             @RequestParam(defaultValue = "false") boolean exactMatch) {
 
-        Set<PostSummaryDTO> results = blogService.searchPosts(query, caseSensitive, exactMatch);
+        Set<PostSummaryDTO> results = postService.searchPosts(query, caseSensitive, exactMatch);
         return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     @GetMapping(value = "/search/author", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Post>> getPostsByAuthor(@RequestParam String firstName, String lastName, String email) {
         Author author = new Author(firstName, lastName, email);
-        List<Post> posts = blogService.getPostsByAuthor(author);
+        List<Post> posts = postService.getPostsByAuthor(author);
 
         return ResponseEntity.ok(posts);
     }

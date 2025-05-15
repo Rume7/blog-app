@@ -10,7 +10,7 @@ import com.codehacks.blog.post.exception.InvalidPostIdException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Comment;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.post.repository.PostRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -30,7 +30,7 @@ public class CommentServiceImpl implements CommentService {
 
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
-    private final BlogRepository blogRepository;
+    private final PostRepository postRepository;
 
     public CommentDto addCommentToPost(Long postId, CommentDto request) {
         validateComment(request, postId);
@@ -41,7 +41,7 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UserAccountException("User not found"));
 
-        Post post = blogRepository.findById(postId)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         Comment comment = new Comment();
@@ -66,7 +66,7 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto updateComment(@Valid CommentDto commentDto, Long commentId, Long postId) {
         validateComment(commentDto, postId);
 
-        blogRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + postId));
 
         Comment comment = commentRepository.findById(commentId)

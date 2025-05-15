@@ -9,7 +9,7 @@ import com.codehacks.blog.post.exception.InvalidPostIdException;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.post.model.Comment;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.post.repository.PostRepository;
 import com.codehacks.blog.post.repository.CommentRepository;
 import com.codehacks.blog.post.dto.CommentDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +44,7 @@ class CommentServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private BlogRepository blogRepository;
+    private PostRepository postRepository;
 
     @InjectMocks
     private CommentServiceImpl commentService;
@@ -146,7 +146,7 @@ class CommentServiceTest {
         savedComment.setCreatedAt(LocalDateTime.now());
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(mockUser));
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
         when(commentRepository.save(any(Comment.class))).thenReturn(savedComment);
 
         // Act
@@ -244,7 +244,7 @@ class CommentServiceTest {
         existingComment.setContent("Old content");
         existingComment.setPost(mockPost);
 
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(mockPost));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(mockPost));
         when(commentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
         when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -261,7 +261,7 @@ class CommentServiceTest {
         CommentDto requestDto = new CommentDto();
         requestDto.setContent("Some content");
 
-        when(blogRepository.findById(postId)).thenReturn(Optional.empty());
+        when(postRepository.findById(postId)).thenReturn(Optional.empty());
 
         PostNotFoundException exception = assertThrows(
                 PostNotFoundException.class,
@@ -278,7 +278,7 @@ class CommentServiceTest {
         CommentDto requestDto = new CommentDto();
         requestDto.setContent("Some content");
 
-        when(blogRepository.findById(postId)).thenReturn(Optional.of(new Post()));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(new Post()));
         when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
 
         CommentNotFoundException exception = assertThrows(
