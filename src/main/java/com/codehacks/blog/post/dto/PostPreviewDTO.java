@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Getter
 @Setter
-public class BlogPreviewDTO {
+public class PostPreviewDTO {
 
     private Long id;
     private String title;

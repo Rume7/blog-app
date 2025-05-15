@@ -3,6 +3,7 @@ package com.codehacks.blog.subscription.controller;
 import com.codehacks.blog.auth.dto.ApiResponse;
 import com.codehacks.blog.subscription.dto.SubscriberDTO;
 import com.codehacks.blog.subscription.model.Subscriber;
+import com.codehacks.blog.subscription.model.SubscriptionStatus;
 import com.codehacks.blog.subscription.service.SubscriptionService;
 import com.codehacks.blog.util.Constants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller for managing email subscriptions.
@@ -157,5 +159,29 @@ public class SubscriptionController {
 
         return ResponseEntity.ok()
                 .body(ApiResponse.success(subscribers));
+    }
+
+
+    //@PreAuthorize("ADMIN")
+    @Operation(
+            summary = "Get subscribers grouped by status (Admin only)",
+            description = "Returns a map of subscription status to list of subscribers. Restricted to ADMIN role.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Grouped subscribers returned successfully",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ApiResponse.class))),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "403",
+                            description = "Forbidden - Only admins can access this resource")
+            }
+    )
+    @GetMapping(value = "/grouped-by-status", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<SubscriptionStatus, List<Subscriber>>>> getSubscribersByStatus() {
+        Map<SubscriptionStatus, List<Subscriber>> groupedSubscribers = subscriptionService.getSubscribersByStatus();
+
+        return ResponseEntity.ok(ApiResponse.success(groupedSubscribers));
     }
 }

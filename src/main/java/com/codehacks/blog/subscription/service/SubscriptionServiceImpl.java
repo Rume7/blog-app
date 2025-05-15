@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,5 +60,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscriber.setStatus(status);
         subscriber.setUnsubscribedAt(LocalDateTime.now());
         subscriberRepository.save(subscriber);
+    }
+
+    @Override
+    public Map<SubscriptionStatus, List<Subscriber>> getSubscribersByStatus() {
+        List<Subscriber> subscriberList = subscriberRepository.findAll();
+
+        return subscriberList.stream()
+                .collect(Collectors.groupingBy(Subscriber::getStatus));
     }
 }

@@ -3,7 +3,7 @@ package com.codehacks.blog.integrationtests;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.auth.model.User;
-import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.post.repository.PostRepository;
 import com.codehacks.blog.auth.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jetbrains.annotations.NotNull;
@@ -33,13 +33,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class BlogControllerIT {
+class PostControllerIT {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private BlogRepository blogRepository;
+    private PostRepository postRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -63,7 +63,7 @@ class BlogControllerIT {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        blogRepository.deleteAll();
+        postRepository.deleteAll();
         userRepository.deleteAll();
 
         testAuthor = new Author("Test", "Author");
@@ -94,8 +94,8 @@ class BlogControllerIT {
 
         Post post1 = new Post("Title 1", "Content 1", testAuthor);
         Post post2 = new Post("Title 2", "Content 2", testAuthor);
-        blogRepository.save(post1);
-        blogRepository.save(post2);
+        postRepository.save(post1);
+        postRepository.save(post2);
 
         // When & Then
         mockMvc.perform(get("/api/v1/posts")
@@ -111,7 +111,7 @@ class BlogControllerIT {
         String token = getToken();
 
         Post post = new Post("Title", "Content", testAuthor);
-        Post savedPost = blogRepository.save(post);
+        Post savedPost = postRepository.save(post);
 
         // When & Then
         mockMvc.perform(get("/api/v1/posts/{id}", savedPost.getId())
@@ -155,7 +155,7 @@ class BlogControllerIT {
         String token = getToken();
 
         Post post = new Post("Old Title", "Old Content", testAuthor);
-        Post savedPost = blogRepository.save(post);
+        Post savedPost = postRepository.save(post);
         Post updatedPost = new Post("Updated Title", "Updated Content", testAuthor);
 
         // When & Then
@@ -174,7 +174,7 @@ class BlogControllerIT {
         // Given
         String token = getToken();
         Post post = new Post("Title", "Content", testAuthor);
-        Post savedPost = blogRepository.save(post);
+        Post savedPost = postRepository.save(post);
 
         // When & Then
         mockMvc.perform(delete("/api/v1/posts/{id}", savedPost.getId())

@@ -1,7 +1,7 @@
 package com.codehacks.blog.post.service;
 
 import com.codehacks.blog.auth.exception.InvalidSearchQueryException;
-import com.codehacks.blog.post.dto.BlogPreviewDTO;
+import com.codehacks.blog.post.dto.PostPreviewDTO;
 import com.codehacks.blog.auth.exception.InvalidPostException;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.MissingAuthorException;
@@ -10,7 +10,7 @@ import com.codehacks.blog.post.mapper.PostMapper;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
 import com.codehacks.blog.post.repository.AuthorRepository;
-import com.codehacks.blog.post.repository.BlogRepository;
+import com.codehacks.blog.post.repository.PostRepository;
 import com.codehacks.blog.util.Constants;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -31,9 +31,9 @@ import java.util.stream.Stream;
 
 @Service
 @AllArgsConstructor
-public class BlogServiceImpl implements BlogService {
+public class PostServiceImpl implements PostService {
 
-    private final BlogRepository blogRepository;
+    private final PostRepository postRepository;
     private final AuthorRepository authorRepository;
     private final PostMapper postMapper;
 
@@ -41,7 +41,7 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     public Set<Post> getAllPosts() {
-        return new HashSet<>(blogRepository.findAll());
+        return new HashSet<>(postRepository.findAll());
     }
 
     @Override
@@ -50,20 +50,20 @@ public class BlogServiceImpl implements BlogService {
         if (id == null || id < 1) {
             throw new PostNotFoundException("Post id: " + id + " is invalid");
         }
-        return blogRepository.findByIdWithComments(id)
+        return postRepository.findByIdWithComments(id)
                 .orElseThrow(() -> new PostNotFoundException("Post " + id + " was not found"));
     }
 
     @Override
     public List<Post> searchPostsByTitle(String title) {
-        return blogRepository.findByTitleContainingIgnoreCase(title);
+        return postRepository.findByTitleContainingIgnoreCase(title);
     }
 
     @Override
     public List<Post> getPostsByAuthor(Author authorName) {
         validateAuthorName(authorName);
 
-        return blogRepository.findByAuthor(authorName);
+        return postRepository.findByAuthor(authorName);
     }
 
     private void validateAuthorName(Author author) {
@@ -92,7 +92,7 @@ public class BlogServiceImpl implements BlogService {
         Author author = resolveAuthor(post.getAuthor());
         post.setAuthor(author);
 
-        return blogRepository.save(post);
+        return postRepository.save(post);
     }
 
     private void validatePost(Post post) {
@@ -140,7 +140,7 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional
     public Post updatePost(Post post, Long blogId) {
-        Post blogPost = blogRepository.findByIdWithComments(blogId)
+        Post blogPost = postRepository.findByIdWithComments(blogId)
                 .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + blogId));
 
         validatePost(post);
@@ -149,7 +149,7 @@ public class BlogServiceImpl implements BlogService {
         blogPost.setContent(post.getContent().trim());
         blogPost.setUpdatedAt(LocalDateTime.now());
 
-        return blogRepository.save(blogPost);
+        return postRepository.save(blogPost);
     }
 
     @Override
@@ -158,8 +158,8 @@ public class BlogServiceImpl implements BlogService {
         if (blogId <= 0) {
             throw new InvalidPostException("Post cannot have a non-positive id");
         }
-        if (blogRepository.existsById(blogId)) {
-            blogRepository.deleteById(blogId);
+        if (postRepository.existsById(blogId)) {
+            postRepository.deleteById(blogId);
             return true;
         }
         throw new PostNotFoundException("Post not found with id: " + blogId);
@@ -167,15 +167,15 @@ public class BlogServiceImpl implements BlogService {
 
     @Override
     @Cacheable
-    public List<BlogPreviewDTO> getBlogPreviews() {
-        List<Post> blogs = blogRepository.findAll();
+    public List<PostPreviewDTO> getBlogPreviews() {
+        List<Post> blogs = postRepository.findAll();
         return blogs.stream()
                 .map(this::convertToPreview)
                 .collect(Collectors.toList());
     }
 
-    private BlogPreviewDTO convertToPreview(Post blog) {
-        BlogPreviewDTO preview = new BlogPreviewDTO();
+    private PostPreviewDTO convertToPreview(Post blog) {
+        PostPreviewDTO preview = new PostPreviewDTO();
         preview.setId(blog.getId());
         preview.setTitle(blog.getTitle());
         preview.setAuthor(String.join(" ", blog.getAuthor().getFirstName(), blog.getAuthor().getLastName()));
@@ -216,7 +216,7 @@ public class BlogServiceImpl implements BlogService {
             throw new PostNotFoundException("There should be a number of posts.");
         }
 
-        return blogRepository.findTopNRecentPostsOrderByCreatedAt(pageable)
+        return postRepository.findTopNRecentPostsOrderByCreatedAt(pageable)
                 .stream()
                 .map(postMapper::toSummary)
                 .toList();
@@ -231,7 +231,7 @@ public class BlogServiceImpl implements BlogService {
         final String searchQuery = (!caseSensitive) ? query.trim().toLowerCase()
                 : query.trim();
 
-        List<Post> posts = blogRepository.findAll();
+        List<Post> posts = postRepository.findAll();
         return posts.stream()
                 .filter(post -> matchesSearchCriteria(post, searchQuery, caseSensitive, exactMatch))
                 .map(postMapper::toSummary)

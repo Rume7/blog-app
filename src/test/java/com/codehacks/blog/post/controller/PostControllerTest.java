@@ -3,13 +3,13 @@ package com.codehacks.blog.post.controller;
 import com.codehacks.blog.auth.config.JwtAuthenticationFilter;
 import com.codehacks.blog.auth.exception.AuthGlobalExceptionHandler;
 import com.codehacks.blog.auth.exception.InvalidPostException;
-import com.codehacks.blog.post.dto.BlogPreviewDTO;
+import com.codehacks.blog.post.dto.PostPreviewDTO;
 import com.codehacks.blog.post.dto.PostSummaryDTO;
 import com.codehacks.blog.post.exception.PostNotFoundException;
 import com.codehacks.blog.subscription.exception.SubscriptionGlobalExceptionHandler;
 import com.codehacks.blog.post.model.Author;
 import com.codehacks.blog.post.model.Post;
-import com.codehacks.blog.post.service.BlogService;
+import com.codehacks.blog.post.service.PostService;
 import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,19 +52,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@WebMvcTest(value = BlogController.class, excludeFilters = {
+@WebMvcTest(value = PostController.class, excludeFilters = {
         @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
                 classes = SubscriptionGlobalExceptionHandler.class)
 })
 @AutoConfigureMockMvc(addFilters = false)
 @Import(AuthGlobalExceptionHandler.class)
-class BlogControllerTest {
+class PostControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private BlogService blogService;
+    private PostService postService;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -92,7 +92,7 @@ class BlogControllerTest {
         Set<Post> posts = new HashSet<>(Arrays.asList(post1, post2));
 
         // When
-        Mockito.when(blogService.getAllPosts()).thenReturn(posts);
+        Mockito.when(postService.getAllPosts()).thenReturn(posts);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/all")
@@ -100,13 +100,13 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(posts.size()));
 
-        verify(blogService, times(1)).getAllPosts();
+        verify(postService, times(1)).getAllPosts();
     }
 
     @Test
     void shouldReturnEmptyListWhenNoPostsExist() throws Exception {
         // Given & When
-        when(blogService.getAllPosts()).thenReturn(Collections.emptySet());
+        when(postService.getAllPosts()).thenReturn(Collections.emptySet());
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/all")
@@ -114,7 +114,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(blogService, times(1)).getAllPosts();
+        verify(postService, times(1)).getAllPosts();
     }
 
     @Test
@@ -125,7 +125,7 @@ class BlogControllerTest {
         post.setId(postId);
 
         // When
-        when(blogService.getPostById(postId)).thenReturn(post);
+        when(postService.getPostById(postId)).thenReturn(post);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
@@ -136,7 +136,7 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$.author.firstName").value("John"))
                 .andExpect(jsonPath("$.author.lastName").value("Doe"));
 
-        verify(blogService, times(1)).getPostById(postId);
+        verify(postService, times(1)).getPostById(postId);
     }
 
     @Test
@@ -145,14 +145,14 @@ class BlogControllerTest {
         Long postId = 999L;
 
         // When
-        when(blogService.getPostById(postId)).thenReturn(null);
+        when(postService.getPostById(postId)).thenReturn(null);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/{id}", postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
-        verify(blogService, times(1)).getPostById(postId);
+        verify(postService, times(1)).getPostById(postId);
     }
 
     @Test
@@ -161,14 +161,14 @@ class BlogControllerTest {
         Long postId = -999L;
 
         // When
-        when(blogService.getPostById(postId)).thenThrow(new PostNotFoundException("Post not found"));
+        when(postService.getPostById(postId)).thenThrow(new PostNotFoundException("Post not found"));
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/" + postId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(blogService, never()).getPostById(postId);
+        verify(postService, never()).getPostById(postId);
     }
 
     @Test
@@ -184,7 +184,7 @@ class BlogControllerTest {
         String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
-        when(blogService.createPost(any(Post.class))).thenReturn(post);
+        when(postService.createPost(any(Post.class))).thenReturn(post);
 
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
@@ -209,7 +209,7 @@ class BlogControllerTest {
         String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
-        when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title is too short"));
+        when(postService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title is too short"));
 
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
@@ -224,7 +224,7 @@ class BlogControllerTest {
         String longTitle = "A".repeat(200);
 
         // When
-        when(blogService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title is too long"));
+        when(postService.createPost(any(Post.class))).thenThrow(new InvalidPostException("Title is too long"));
 
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
@@ -239,7 +239,7 @@ class BlogControllerTest {
         Post post = new Post(null, "Content", author);
 
         // When
-        when(blogService.createPost(post)).thenThrow(new InvalidPostException("Title cannot be null"));
+        when(postService.createPost(post)).thenThrow(new InvalidPostException("Title cannot be null"));
 
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
@@ -254,7 +254,7 @@ class BlogControllerTest {
         Post post = new Post("Valid Title", null, author);
 
         // When
-        when(blogService.createPost(post)).thenThrow(new InvalidPostException("Blog post cannot be empty"));
+        when(postService.createPost(post)).thenThrow(new InvalidPostException("Blog post cannot be empty"));
 
         // Then
         mockMvc.perform(post(Constants.BLOG_PATH + "/create")
@@ -279,7 +279,7 @@ class BlogControllerTest {
         String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
-        when(blogService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
+        when(postService.updatePost(any(Post.class), eq(postId))).thenReturn(updatedPost);
 
         // Then
         mockMvc.perform(put(Constants.BLOG_PATH + "/update/{id}", postId)
@@ -296,7 +296,7 @@ class BlogControllerTest {
         Long postId = 1L;
 
         // When
-        when(blogService.deletePost(postId)).thenReturn(true);
+        when(postService.deletePost(postId)).thenReturn(true);
 
         // Then
         mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/{id}", postId))
@@ -310,7 +310,7 @@ class BlogControllerTest {
         Long postId = 1L;
 
         // When
-        when(blogService.deletePost(postId)).thenReturn(false);
+        when(postService.deletePost(postId)).thenReturn(false);
 
         // Then
         mockMvc.perform(delete(Constants.BLOG_PATH + "/delete/{id}", postId))
@@ -333,7 +333,7 @@ class BlogControllerTest {
         List<PostSummaryDTO> mockPosts = createMockPosts(limit);
 
         // When
-        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+        when(postService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + limit))
@@ -344,13 +344,13 @@ class BlogControllerTest {
     @Test
     void shouldReturnBlogPreviewsSuccessfully() throws Exception {
         // Given
-        List<BlogPreviewDTO> mockPreviews = Arrays.asList(
-                new BlogPreviewDTO(1L, "First Post", "John Doe", "Preview content 1", LocalDateTime.now()),
-                new BlogPreviewDTO(2L, "Second Post", "Jane Smith", "Preview content 2", LocalDateTime.now())
+        List<PostPreviewDTO> mockPreviews = Arrays.asList(
+                new PostPreviewDTO(1L, "First Post", "John Doe", "Preview content 1", LocalDateTime.now()),
+                new PostPreviewDTO(2L, "Second Post", "Jane Smith", "Preview content 2", LocalDateTime.now())
         );
 
         // When
-        when(blogService.getBlogPreviews()).thenReturn(mockPreviews);
+        when(postService.getBlogPreviews()).thenReturn(mockPreviews);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/previews")
@@ -366,13 +366,13 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$[1].author").value("Jane Smith"))
                 .andExpect(jsonPath("$[1].previewContent").value("Preview content 2"));
 
-        verify(blogService, times(1)).getBlogPreviews();
+        verify(postService, times(1)).getBlogPreviews();
     }
 
     @Test
     void shouldReturnEmptyListWhenNoBlogPreviewsExist() throws Exception {
         // Given & When
-        when(blogService.getBlogPreviews()).thenReturn(Collections.emptyList());
+        when(postService.getBlogPreviews()).thenReturn(Collections.emptyList());
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/previews")
@@ -380,7 +380,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(blogService, times(1)).getBlogPreviews();
+        verify(postService, times(1)).getBlogPreviews();
     }
 
     @Test
@@ -389,7 +389,7 @@ class BlogControllerTest {
         List<PostSummaryDTO> mockPosts = createMockPosts(defaultRecentLimit);
 
         // When
-        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+        when(postService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
@@ -400,7 +400,7 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$[0].title").value("Post for day 1"))
                 .andExpect(jsonPath("$[0].createdAt").exists());
 
-        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+        verify(postService, times(1)).getRecentPosts(any(Pageable.class));
     }
 
     @Test
@@ -410,7 +410,7 @@ class BlogControllerTest {
         List<PostSummaryDTO> mockPosts = createMockPosts(customLimit);
 
         // When
-        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+        when(postService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + customLimit)
@@ -424,7 +424,7 @@ class BlogControllerTest {
                 .andExpect(jsonPath("$[2].id").value(3))
                 .andExpect(jsonPath("$[2].title").value("Post for day 3"));
 
-        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+        verify(postService, times(1)).getRecentPosts(any(Pageable.class));
     }
 
     @Test
@@ -435,7 +435,7 @@ class BlogControllerTest {
         List<PostSummaryDTO> mockPosts = createMockPosts(expectedLimit);
 
         // When
-        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
+        when(postService.getRecentPosts(any(Pageable.class))).thenReturn(mockPosts);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent?limit=" + requestedLimit)
@@ -443,7 +443,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(expectedLimit));
 
-        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+        verify(postService, times(1)).getRecentPosts(any(Pageable.class));
     }
 
     // Helper method to generate mock data for posts
@@ -456,7 +456,7 @@ class BlogControllerTest {
     @Test
     void shouldReturnEmptyListWhenNoRecentPostsExist() throws Exception {
         // Given & When
-        when(blogService.getRecentPosts(any(Pageable.class))).thenReturn(Collections.emptyList());
+        when(postService.getRecentPosts(any(Pageable.class))).thenReturn(Collections.emptyList());
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/recent")
@@ -464,7 +464,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(blogService, times(1)).getRecentPosts(any(Pageable.class));
+        verify(postService, times(1)).getRecentPosts(any(Pageable.class));
     }
 
     @Test
@@ -478,7 +478,7 @@ class BlogControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(blogService, times(0)).getRecentPosts(any(Pageable.class));
+        verify(postService, times(0)).getRecentPosts(any(Pageable.class));
     }
 
     @Test
@@ -496,7 +496,7 @@ class BlogControllerTest {
         String jsonContent = objectMapper.writeValueAsString(postData);
 
         // When
-        when(blogService.updatePost(any(Post.class), eq(nonExistentPostId)))
+        when(postService.updatePost(any(Post.class), eq(nonExistentPostId)))
                 .thenThrow(new PostNotFoundException("Post not found with id: " + nonExistentPostId));
 
         // Then
@@ -505,7 +505,7 @@ class BlogControllerTest {
                         .content(jsonContent))
                 .andExpect(status().isBadRequest());
 
-        verify(blogService, times(0)).updatePost(any(Post.class), eq(nonExistentPostId));
+        verify(postService, times(0)).updatePost(any(Post.class), eq(nonExistentPostId));
     }
 
     @Test
@@ -515,7 +515,7 @@ class BlogControllerTest {
         String invalidTitle = "A"; // Too short title
 
         // When
-        when(blogService.updatePost(any(Post.class), eq(postId)))
+        when(postService.updatePost(any(Post.class), eq(postId)))
                 .thenThrow(new InvalidPostException("Title length is too short"));
 
         // Then
@@ -524,7 +524,7 @@ class BlogControllerTest {
                         .content("{\"title\":\"" + invalidTitle + "\", \"content\":\"Updated content\"}"))
                 .andExpect(status().isBadRequest());
 
-        verify(blogService, never()).updatePost(any(Post.class), eq(postId));
+        verify(postService, never()).updatePost(any(Post.class), eq(postId));
     }
 
     @Test
@@ -538,7 +538,7 @@ class BlogControllerTest {
         Set<PostSummaryDTO> setOfMockResults = new HashSet<>(mockResults);
 
         // When
-        when(blogService.searchPosts(eq(searchTerm), eq(true), eq(true))).thenReturn(setOfMockResults);
+        when(postService.searchPosts(eq(searchTerm), eq(true), eq(true))).thenReturn(setOfMockResults);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search")
@@ -549,7 +549,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
 
-        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(true));
+        verify(postService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(true));
     }
 
     @Test
@@ -558,7 +558,7 @@ class BlogControllerTest {
         String searchTerm = "NonexistentPost";
 
         // When
-        when(blogService.searchPosts(eq(searchTerm), eq(false), eq(true))).thenReturn(Collections.emptySet());
+        when(postService.searchPosts(eq(searchTerm), eq(false), eq(true))).thenReturn(Collections.emptySet());
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search")
@@ -569,7 +569,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk());
         //.andExpect(jsonPath("$.length()").value(0));
 
-        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(false), eq(true));
+        verify(postService, times(1)).searchPosts(eq(searchTerm), eq(false), eq(true));
     }
 
 //    @Test
@@ -606,7 +606,7 @@ class BlogControllerTest {
         Set<PostSummaryDTO> result = new HashSet<>(mockResults);
 
         // When
-        when(blogService.searchPosts(eq(searchTerm), eq(false), eq(true))).thenReturn(result);
+        when(postService.searchPosts(eq(searchTerm), eq(false), eq(true))).thenReturn(result);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search")
@@ -617,7 +617,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
 
-        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(false), eq(true));
+        verify(postService, times(1)).searchPosts(eq(searchTerm), eq(false), eq(true));
     }
 
     @Test
@@ -632,7 +632,7 @@ class BlogControllerTest {
         Set<PostSummaryDTO> result = new HashSet<>(mockResults);
 
         // When
-        when(blogService.searchPosts(eq(searchTerm), eq(true), eq(false))).thenReturn(result);
+        when(postService.searchPosts(eq(searchTerm), eq(true), eq(false))).thenReturn(result);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search")
@@ -643,7 +643,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
 
-        verify(blogService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(false));
+        verify(postService, times(1)).searchPosts(eq(searchTerm), eq(true), eq(false));
     }
 
     @Test
@@ -656,7 +656,7 @@ class BlogControllerTest {
         );
 
         // When
-        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(mockResults);
+        when(postService.getPostsByAuthor(eq(authorName))).thenReturn(mockResults);
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search/author")
@@ -667,7 +667,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
 
-        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+        verify(postService, times(1)).getPostsByAuthor(eq(authorName));
     }
 
     @Test
@@ -676,7 +676,7 @@ class BlogControllerTest {
         Author authorName = new Author("Jane", "Smith", "jane.smith@example.com");
 
         // When
-        when(blogService.getPostsByAuthor(eq(authorName))).thenReturn(Collections.emptyList());
+        when(postService.getPostsByAuthor(eq(authorName))).thenReturn(Collections.emptyList());
 
         // Then
         mockMvc.perform(get(Constants.BLOG_PATH + "/search/author")
@@ -687,7 +687,7 @@ class BlogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(blogService, times(1)).getPostsByAuthor(eq(authorName));
+        verify(postService, times(1)).getPostsByAuthor(eq(authorName));
     }
 
 //    @Test
