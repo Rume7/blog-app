@@ -5,6 +5,7 @@ import com.codehacks.blog.subscription.model.SubscriptionStatus;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public interface SubscriptionService {
 
@@ -17,4 +18,12 @@ public interface SubscriptionService {
     List<Subscriber> getActiveSubscribers();
 
     Map<SubscriptionStatus, List<Subscriber>> getSubscribersByStatus();
+
+    List<Subscriber> saveSubscribersList(List<Subscriber> subscriberList);
+
+    List<Subscriber> getAllSubscribers();
+
+    void deleteAllSubscribers();
+
+    Optional<Subscriber> findSubscriberByEmail(String email);
 } 

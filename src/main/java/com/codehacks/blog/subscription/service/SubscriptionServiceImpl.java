@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,5 +69,25 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         return subscriberList.stream()
                 .collect(Collectors.groupingBy(Subscriber::getStatus));
+    }
+
+    @Override
+    public List<Subscriber> saveSubscribersList(List<Subscriber> subscriberList) {
+        return subscriberRepository.saveAll(subscriberList);
+    }
+
+    @Override
+    public List<Subscriber> getAllSubscribers() {
+        return subscriberRepository.findAll();
+    }
+
+    @Override
+    public void deleteAllSubscribers() {
+        subscriberRepository.deleteAll();
+    }
+
+    @Override
+    public Optional<Subscriber> findSubscriberByEmail(String email) {
+        return subscriberRepository.findByEmail(email);
     }
 }

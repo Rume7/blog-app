@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 class AuthServiceTest {
 
     @InjectMocks
-    private AuthService authService;
+    private AuthServiceImpl authService;
 
     @Mock
     private TokenService tokenService;

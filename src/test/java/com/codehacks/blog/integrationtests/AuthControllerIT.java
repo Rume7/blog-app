@@ -3,6 +3,7 @@ package com.codehacks.blog.integrationtests;
 import com.codehacks.blog.auth.controller.AuthController;
 import com.codehacks.blog.auth.model.User;
 import com.codehacks.blog.auth.repository.UserRepository;
+import com.codehacks.blog.auth.service.UserDetailsServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -45,6 +46,8 @@ class AuthControllerIT {
 
     @Autowired
     private UserRepository userRepository;
+
+    private UserDetailsServiceImpl userDetailsService;
 
     private ObjectMapper objectMapper;
 
@@ -132,7 +135,7 @@ class AuthControllerIT {
                 .andExpect(status().isOk());
 
         // Then
-        User updatedUser = userRepository.findByEmail("user@example.com").orElseThrow();
+        User updatedUser = userDetailsService.findUserByEmail("user@example.com").orElseThrow();
         assert (new BCryptPasswordEncoder().matches(newPassword, updatedUser.getPassword()));
     }
 
@@ -173,7 +176,7 @@ class AuthControllerIT {
                 .andExpect(status().isNoContent());
 
         // Then
-        assert (userRepository.findByEmail("user@example.com").isEmpty());
+        assert (userDetailsService.findUserByEmail("user@example.com").isEmpty());
     }
 
     @Test

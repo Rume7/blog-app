@@ -3,7 +3,7 @@ package com.codehacks.blog.it;
 import com.codehacks.blog.subscription.dto.SubscriberDTO;
 import com.codehacks.blog.subscription.model.Subscriber;
 import com.codehacks.blog.subscription.model.SubscriptionStatus;
-import com.codehacks.blog.subscription.repository.SubscriberRepository;
+import com.codehacks.blog.subscription.service.SubscriptionServiceImpl;
 import com.codehacks.blog.util.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bucket;
@@ -66,7 +66,7 @@ class SubscriptionControllerIntegrationTest {
     private Bucket rateLimiterBucket;
 
     @Autowired
-    private SubscriberRepository subscriberRepository;
+    private SubscriptionServiceImpl subscriptionService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,7 +75,7 @@ class SubscriptionControllerIntegrationTest {
     @BeforeEach
     void setup() {
         given(rateLimiterBucket.tryConsume(anyLong())).willReturn(true);
-        subscriberRepository.deleteAll();
+        subscriptionService.deleteAllSubscribers();
     }
 
     @Test
@@ -88,7 +88,7 @@ class SubscriptionControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value(email));
 
-        List<Subscriber> subscribers = subscriberRepository.findAll();
+        List<Subscriber> subscribers = subscriptionService.getAllSubscribers();
         assertThat(subscribers).hasSize(1);
     }
 
@@ -96,7 +96,7 @@ class SubscriptionControllerIntegrationTest {
     @DisplayName("Subscribe duplicate email - should return 409 Conflict")
     void subscribe_Duplicate_ShouldReturnConflict() throws Exception {
         // Given existing subscriber
-        subscriberRepository.save(new Subscriber(email));
+        subscriptionService.subscribe(email);
 
         mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/subscribe")
                         .contentType(APPLICATION_JSON)
@@ -109,15 +109,14 @@ class SubscriptionControllerIntegrationTest {
     @Test
     @DisplayName("Unsubscribe existing subscriber - should return 200 OK")
     void unsubscribe_Existing_ShouldReturnOk() throws Exception {
-        subscriberRepository.save(new Subscriber(email));
+        subscriptionService.subscribe(email);
 
         mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/unsubscribe")
                         .param("email", email))
                 .andExpect(status().isOk())
-                //.andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").value("Successfully unsubscribed"));
 
-        Subscriber updated = subscriberRepository.findByEmail(email).orElseThrow();
+        Subscriber updated = subscriptionService.findSubscriberByEmail(email).orElseThrow();
         assertThat(updated.getStatus()).isEqualTo(SubscriptionStatus.UNSUBSCRIBED);
     }
 
@@ -134,9 +133,8 @@ class SubscriptionControllerIntegrationTest {
     @Test
     @DisplayName("Resubscribe existing unsubscribed subscriber - should return 200 OK")
     void resubscribe_Existing_ShouldReturnOk() throws Exception {
-        Subscriber sub = new Subscriber(email);
-        sub.setStatus(SubscriptionStatus.UNSUBSCRIBED);
-        subscriberRepository.save(sub);
+        subscriptionService.subscribe(email);
+        subscriptionService.unsubscribe(email);
 
         mockMvc.perform(post(Constants.SUBSCRIPTION_PATH + "/resubscribe")
                         .param("email", email))
@@ -144,7 +142,7 @@ class SubscriptionControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value(email));
 
-        Subscriber updated = subscriberRepository.findByEmail(email).orElseThrow();
+        Subscriber updated = subscriptionService.findSubscriberByEmail(email).orElseThrow();
         assertThat(updated.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
     }
 
@@ -162,7 +160,7 @@ class SubscriptionControllerIntegrationTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("Get active subscribers - should return list")
     void getActiveSubscribers_ShouldReturnList() throws Exception {
-        subscriberRepository.save(new Subscriber(email));
+        subscriptionService.subscribe(email);
 
         mockMvc.perform(get(Constants.SUBSCRIPTION_PATH + "/active"))
                 .andExpect(status().isOk())
@@ -181,7 +179,7 @@ class SubscriptionControllerIntegrationTest {
         Subscriber sub4 = new Subscriber("pending1@example.com");
         sub4.setStatus(SubscriptionStatus.BANNED);
 
-        subscriberRepository.saveAll(List.of(sub1, sub2, sub3, sub4));
+        subscriptionService.saveSubscribersList(List.of(sub1, sub2, sub3, sub4));
     }
 
     @Test
