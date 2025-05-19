@@ -37,8 +37,6 @@ public class PostServiceImpl implements PostService {
     private final AuthorRepository authorRepository;
     private final PostMapper postMapper;
 
-    @Value("${blog.recent.limit}")
-
     @Override
     public Set<Post> getAllPosts() {
         return new HashSet<>(postRepository.findAll());
