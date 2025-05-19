@@ -33,7 +33,7 @@ class SecurityServiceTest {
     private JavaMailSender javaMailSender;
 
     @InjectMocks
-    private SecurityService securityService;
+    private SecurityServiceImpl securityService;
 
     private MailConfig mailConfigMock;
 
@@ -58,9 +58,9 @@ class SecurityServiceTest {
         when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
 
         Set<String> knownIps = Set.of(KNOWN_IP, "10.0.0.2");
-        SecurityService securityService = new SecurityService(mailConfigMock, knownIps);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
 
-        Field securityEmailField = SecurityService.class.getDeclaredField("securityEmail");
+        Field securityEmailField = SecurityServiceImpl.class.getDeclaredField("securityEmail");
         securityEmailField.setAccessible(true);
         securityEmailField.set(securityService, "security@example.com");
 
@@ -75,7 +75,7 @@ class SecurityServiceTest {
     void testHandleSuspiciousLogin_KnownIp() {
         // Given
         Set<String> knownIps = Set.of(TEST_IP, KNOWN_IP);
-        securityService = new SecurityService(mailConfigMock, knownIps);
+        securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
 
         // When
         when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
@@ -89,9 +89,9 @@ class SecurityServiceTest {
     void testTriggerAlert_InvalidEmail() throws NoSuchFieldException, IllegalAccessException {
         // Given
         Set<String> knownIps = Set.of(KNOWN_IP, "10.0.0.2");
-        SecurityService securityService = new SecurityService(mailConfigMock, knownIps);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
 
-        Field securityEmailField = SecurityService.class.getDeclaredField("securityEmail");
+        Field securityEmailField = SecurityServiceImpl.class.getDeclaredField("securityEmail");
         securityEmailField.setAccessible(true);
         securityEmailField.set(securityService, "invalid-email");
 
@@ -107,15 +107,14 @@ class SecurityServiceTest {
     void testSendEmail_MailException() throws Exception {
         // Given
         Set<String> knownIps = Set.of(KNOWN_IP);
-        Method sendEmailMethod = SecurityService.class.getDeclaredMethod("sendEmail", String.class, String.class, String.class);
+        Method sendEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("sendEmail", String.class, String.class, String.class);
         sendEmailMethod.setAccessible(true);
 
         // When
-        doThrow(new MailException("Simulated mail exception") {
-        }).when(mailSenderMock).send(any(SimpleMailMessage.class));
+        doThrow(new MailException("Simulated mail exception") {}).when(mailSenderMock).send(any(SimpleMailMessage.class));
         when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
 
-        SecurityService securityService = new SecurityService(mailConfigMock, knownIps);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
         sendEmailMethod.invoke(securityService, "test@example.com", "Test Subject", "Test Message");
 
         // Then
@@ -125,9 +124,9 @@ class SecurityServiceTest {
     @Test
     void testIsValidEmail_ValidEmail() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // Given
-        SecurityService securityService = new SecurityService(mailConfig, Set.of(KNOWN_IP));
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, Set.of(KNOWN_IP));
 
-        Method isValidEmailMethod = SecurityService.class.getDeclaredMethod("isValidEmail", String.class);
+        Method isValidEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("isValidEmail", String.class);
         isValidEmailMethod.setAccessible(true);
 
         //When: Test with a valid email
@@ -144,9 +143,9 @@ class SecurityServiceTest {
     @Test
     void testIsValidEmail_InvalidEmail() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // Given
-        SecurityService securityService = new SecurityService(mailConfig, Set.of(KNOWN_IP));
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, Set.of(KNOWN_IP));
 
-        Method isValidEmailMethod = SecurityService.class.getDeclaredMethod("isValidEmail", String.class);
+        Method isValidEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("isValidEmail", String.class);
         isValidEmailMethod.setAccessible(true);
 
         // When
@@ -161,9 +160,9 @@ class SecurityServiceTest {
     void testIsSuspiciousLogin_KnownIp() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // Given
         Set<String> knownIps = Set.of(KNOWN_IP);
-        SecurityService securityService = new SecurityService(mailConfig, knownIps);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, knownIps);
 
-        Method isSuspiciousLoginMethod = SecurityService.class.getDeclaredMethod("isSuspiciousLogin", String.class);
+        Method isSuspiciousLoginMethod = SecurityServiceImpl.class.getDeclaredMethod("isSuspiciousLogin", String.class);
         isSuspiciousLoginMethod.setAccessible(true);
 
         // When
@@ -177,9 +176,143 @@ class SecurityServiceTest {
     void testIsSuspiciousLogin_UnknownIp() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         // Given
         Set<String> knownIps = Set.of(KNOWN_IP);
-        SecurityService securityService = new SecurityService(mailConfig, knownIps);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, knownIps);
 
-        Method isSuspiciousLoginMethod = SecurityService.class.getDeclaredMethod("isSuspiciousLogin", String.class);
+        Method isSuspiciousLoginMethod = SecurityServiceImpl.class.getDeclaredMethod("isSuspiciousLogin", String.class);
+        isSuspiciousLoginMethod.setAccessible(true);
+
+        // When
+        boolean result = (boolean) isSuspiciousLoginMethod.invoke(securityService, TEST_IP);
+
+        // Then
+        assertTrue(result);
+    }
+
+    @Test
+    void handleSuspiciousLogin_ShouldSendEmail() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
+        when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
+
+        Field securityEmailField = SecurityServiceImpl.class.getDeclaredField("securityEmail");
+        securityEmailField.setAccessible(true);
+        securityEmailField.set(securityService, "security@example.com");
+
+        // When
+        securityService.handleSuspiciousLogin(TEST_EMAIL, TEST_IP);
+
+        // Then
+        verify(mailSenderMock).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void handleSuspiciousLogin_ShouldLogError_WhenEmailSendingFails() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
+        when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
+        doThrow(new MailException("Simulated mail exception") {}).when(mailSenderMock).send(any(SimpleMailMessage.class));
+
+        Field securityEmailField = SecurityServiceImpl.class.getDeclaredField("securityEmail");
+        securityEmailField.setAccessible(true);
+        securityEmailField.set(securityService, "security@example.com");
+
+        // When
+        securityService.handleSuspiciousLogin(TEST_EMAIL, TEST_IP);
+
+        // Then
+        verify(mailSenderMock).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void handleSuspiciousLogin_ShouldLogError_WhenInvalidEmail() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
+        when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
+
+        Field securityEmailField = SecurityServiceImpl.class.getDeclaredField("securityEmail");
+        securityEmailField.setAccessible(true);
+        securityEmailField.set(securityService, "invalid-email");
+
+        // When
+        securityService.handleSuspiciousLogin(TEST_EMAIL, TEST_IP);
+
+        // Then
+        verify(mailSenderMock, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void sendEmail_ShouldSendEmail() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfigMock, knownIps);
+        when(mailConfigMock.javaMailSender()).thenReturn(mailSenderMock);
+
+        Method sendEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("sendEmail", String.class, String.class, String.class);
+        sendEmailMethod.setAccessible(true);
+
+        // When
+        sendEmailMethod.invoke(securityService, "test@example.com", "Test Subject", "Test Message");
+
+        // Then
+        verify(mailSenderMock).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void isValidEmail_ShouldReturnTrue_ForValidEmail() throws Exception {
+        // Given
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, Set.of(KNOWN_IP));
+
+        Method isValidEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("isValidEmail", String.class);
+        isValidEmailMethod.setAccessible(true);
+
+        // When
+        boolean result = (boolean) isValidEmailMethod.invoke(securityService, "user@domain.com");
+
+        // Then
+        assertTrue(result);
+    }
+
+    @Test
+    void isValidEmail_ShouldReturnFalse_ForInvalidEmail() throws Exception {
+        // Given
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, Set.of(KNOWN_IP));
+
+        Method isValidEmailMethod = SecurityServiceImpl.class.getDeclaredMethod("isValidEmail", String.class);
+        isValidEmailMethod.setAccessible(true);
+
+        // When
+        boolean result = (boolean) isValidEmailMethod.invoke(securityService, "user@domain");
+
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void isSuspiciousLogin_ShouldReturnFalse_ForKnownIp() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, knownIps);
+
+        Method isSuspiciousLoginMethod = SecurityServiceImpl.class.getDeclaredMethod("isSuspiciousLogin", String.class);
+        isSuspiciousLoginMethod.setAccessible(true);
+
+        // When
+        boolean result = (boolean) isSuspiciousLoginMethod.invoke(securityService, KNOWN_IP);
+
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void isSuspiciousLogin_ShouldReturnTrue_ForUnknownIp() throws Exception {
+        // Given
+        Set<String> knownIps = Set.of(KNOWN_IP);
+        SecurityServiceImpl securityService = new SecurityServiceImpl(mailConfig, knownIps);
+
+        Method isSuspiciousLoginMethod = SecurityServiceImpl.class.getDeclaredMethod("isSuspiciousLogin", String.class);
         isSuspiciousLoginMethod.setAccessible(true);
 
         // When

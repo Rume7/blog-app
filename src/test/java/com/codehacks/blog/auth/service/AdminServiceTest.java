@@ -32,7 +32,7 @@ class AdminServiceTest {
     @BeforeEach
     void setUp() {
         when(redisTemplate.opsForList()).thenReturn(listOperations);
-        adminService = new AdminService(redisTemplate, securityService);
+        adminService = new AdminServiceImpl(redisTemplate, securityService);
     }
 
     @Test
@@ -72,7 +72,7 @@ class AdminServiceTest {
             Logger mockLogger = mock(Logger.class);
             mockedLoggerFactory.when(() -> LoggerFactory.getLogger(AdminService.class)).thenReturn(mockLogger);
 
-            adminService = new AdminService(redisTemplate, securityService);
+            adminService = new AdminServiceImpl(redisTemplate, securityService);
 
             // When
             adminService.reportUnauthorizedAdminAccess(adminEmail, ipAddress);

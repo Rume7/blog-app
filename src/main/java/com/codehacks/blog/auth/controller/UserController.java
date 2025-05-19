@@ -5,7 +5,7 @@ import com.codehacks.blog.auth.dto.UserDTO;
 import com.codehacks.blog.auth.mapper.UserMapper;
 import com.codehacks.blog.auth.model.CustomUserDetails;
 import com.codehacks.blog.auth.model.User;
-import com.codehacks.blog.auth.repository.UserRepository;
+import com.codehacks.blog.auth.service.UserDetailsServiceImpl;
 import com.codehacks.blog.util.Constants;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,16 +25,16 @@ import java.util.Optional;
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600, allowCredentials = "true")
 public class UserController {
 
-    private final UserRepository userRepository;
+    private final UserDetailsServiceImpl userDetailsService;
 
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserController(UserDetailsServiceImpl userDetailsService) {
+        this.userDetailsService = userDetailsService;
     }
 
     @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userDetailsService.findAllUsers();
         if (users.isEmpty()) {
             return ResponseEntity.status(HttpStatus.OK).body(
                     new ApiResponse<>(true, "No users", null)
@@ -46,7 +46,7 @@ public class UserController {
 
     @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<UserDTO>> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        Optional<User> currentUser = userRepository.findByEmail(userDetails.getEmail());
+        Optional<User> currentUser = userDetailsService.findUserByEmail(userDetails.getEmail());
         return currentUser
                 .map(user -> {
                     UserDTO userDTO = new UserMapper().apply(user);
