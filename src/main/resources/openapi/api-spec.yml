@@ -39,7 +39,7 @@ components:
           format: email
         role:
           type: string
-          enum: [USER, ADMIN, AUTHOR]
+          enum: [ USER, ADMIN, AUTHOR ]
 
     LoginRequest:
       type: object
@@ -101,7 +101,7 @@ components:
           type: string
         userRole:
           type: string
-          enum: [USER, ADMIN, AUTHOR]
+          enum: [ USER, ADMIN, AUTHOR ]
 
     ApiResponse:
       type: object
@@ -195,7 +195,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/auth/login:
     post:
       summary: Login a user
@@ -226,14 +225,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/auth/change-password:
     put:
       summary: Change user password
       tags:
         - Authentication
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       requestBody:
         description: Password change request
         required: true
@@ -260,14 +258,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/auth/change-role:
     put:
       summary: Change user role
       tags:
         - Authentication
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       requestBody:
         description: Role change request
         required: true
@@ -288,14 +285,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/auth/delete-account:
     delete:
       summary: Delete a user account
       tags:
         - Authentication
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: username
           in: query
@@ -316,14 +312,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/auth/logout:
     post:
       summary: Log out a user
       tags:
         - Authentication
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Logged out successfully
@@ -331,14 +326,13 @@ paths:
             application/json:
               schema:
                 type: string
-
   /api/v1/users:
     get:
       summary: Get all users
       tags:
         - Users
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         '200':
           description: List of all users
@@ -352,14 +346,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/users/me:
     get:
       summary: Get current user details
       tags:
         - Users
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         '200':
           description: Current user details
@@ -373,14 +366,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/all:
     get:
       summary: Get all blog posts
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         '200':
           description: List of all posts
@@ -390,14 +382,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Post'
-
   /api/v1/blog/{id}:
     get:
       summary: Get a single blog post by ID
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -418,14 +409,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/create:
     post:
       summary: Create a new blog post
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       requestBody:
         description: Blog post to create
         required: true
@@ -452,14 +442,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/update/{id}:
     put:
       summary: Update an existing blog post
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -499,14 +488,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/delete/{id}:
     delete:
       summary: Delete an existing blog post
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -533,14 +521,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/blog/previews:
     get:
       summary: Get a preview of blog posts
       tags:
         - Blog
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       responses:
         '200':
           description: List of post previews
@@ -550,14 +537,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Post'
-
   /api/v1/comments/{postId}/comments:
     post:
       summary: Add a comment to a post
       tags:
         - Comments
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: postId
           in: path
@@ -591,14 +577,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/comments/update/{postId}/{commentId}:
     put:
       summary: Update a comment
       tags:
         - Comments
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: postId
           in: path
@@ -638,14 +623,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/comments/{id}:
     get:
       summary: Get a comment by ID
       tags:
         - Comments
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -666,14 +650,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/comments/post/{postId}:
     get:
       summary: Get all comments for a post
       tags:
         - Comments
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: postId
           in: path
@@ -696,14 +679,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-
   /api/v1/comments/delete/{id}:
     delete:
       summary: Delete a comment
       tags:
         - Comments
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
