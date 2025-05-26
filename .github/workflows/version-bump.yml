@@ -23,7 +23,7 @@ jobs:
       - name: Get last commit message
         id: last_commit
         run: |
-          msg=$(git log -1 --pretty=%B)
+          msg=$(git log -1 --pretty=%B | tr '\n' ' ')
           echo "Commit message: $msg"
           echo "msg=$msg" >> $GITHUB_OUTPUT
 
@@ -63,7 +63,7 @@ jobs:
           else
             patch=$((patch + 1))
           fi
-                         
+          
           new_version="$major.$minor.$patch"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
