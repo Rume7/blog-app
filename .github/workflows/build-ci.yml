@@ -178,16 +178,19 @@ jobs:
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create branch, commit, and push
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
         run: |
-          BRANCH="ci/version-bump-${{ steps.get_version.outputs.version }}"
+          BRANCH="ci/version-bump-$VERSION"
           git checkout -b $BRANCH
           
           # Commit a dummy change or version bump if needed (adjust if this is done earlier)
-          echo "# Version ${{ steps.get_version.outputs.version }}" > VERSION.txt
+          echo "# Version $VERSION" > VERSION.txt
           git add VERSION.txt
-          git commit -m "chore: bump version to ${{ steps.get_version.outputs.version }}"
+          git commit -m "chore: bump version to $VERSION"
           git push origin $BRANCH
 
       - name: Create Pull Request
