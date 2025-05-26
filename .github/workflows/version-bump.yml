@@ -8,10 +8,12 @@ on:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0  # Required for creating branches
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK
@@ -25,7 +27,7 @@ jobs:
         run: |
           msg=$(git log -1 --pretty=%B | tr '\n' ' ')
           echo "Commit message: $msg"
-          echo "msg=$msg" >> $GITHUB_OUTPUT
+          echo "msg=$msg" >> "$GITHUB_OUTPUT"
 
       - name: Determine version bump type
         id: bump_type
@@ -39,31 +41,22 @@ jobs:
             echo "type=patch" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get current version
+      - name: Get current version and calculate next
         id: get_version
         run: |
           version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "Current version: $version"
-          
           IFS='.' read -r major minor patch <<< "${version}"
-          
-          major=${major:-0}
-          minor=${minor:-0}
-          patch=${patch:-0}
-          
-          bump_type="${{ steps.bump_type.outputs.type }}"
-          
-          if [ "$bump_type" = "major" ]; then
-            major=$((major + 1))
-            minor=0
-            patch=0
-          elif [ "$bump_type" = "minor" ]; then
-            minor=$((minor + 1))
-            patch=0
+
+          bump="${{ steps.bump_type.outputs.type }}"
+          if [ "$bump" = "major" ]; then
+            major=$((major + 1)); minor=0; patch=0
+          elif [ "$bump" = "minor" ]; then
+            minor=$((minor + 1)); patch=0
           else
             patch=$((patch + 1))
           fi
-          
+
           new_version="$major.$minor.$patch"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
@@ -71,13 +64,25 @@ jobs:
         run: |
           mvn versions:set -DnewVersion=${{ steps.get_version.outputs.new_version }} -DgenerateBackupPoms=false
 
-      - name: Commit and push new version
+      - name: Commit version bump and push to new branch
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="version-bump-${{ steps.get_version.outputs.new_version }}"
+          git checkout -b $BRANCH
           git add pom.xml
           git commit -m "chore: bump version to ${{ steps.get_version.outputs.new_version }}"
-          git push
+          git push origin $BRANCH
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: version-bump-${{ steps.get_version.outputs.new_version }}
+          title: "chore: bump version to ${{ steps.get_version.outputs.new_version }}"
+          body: "Automated version bump PR created from main push"
+          base: main
 
       - name: Create Git tag
         run: |
